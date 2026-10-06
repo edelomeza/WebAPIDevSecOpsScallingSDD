@@ -262,3 +262,9 @@
 - Nuevo `.github/workflows/ci-pr.yml` (commit `4891548` en `phase03`): triggers `pull_request→main` + `push→phase03`; jobs `build` → `unit`/`security`/`integration` (`--no-build`, orden 09-01) + `semgrep` (`semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off`); `ubuntu-latest` (Docker para Testcontainers), `setup-dotnet 10.0.x`, timeouts 15/30min. Sin mutation/perf/chaos (solo nightly, fase 09 completa pendiente).
 - Lección: sin `python` local se validó el YAML con `npx -y js-yaml` (parse OK).
 - El workflow va en `phase03` a propósito: GitHub lee los workflows de la rama head, solo así corren en el PR #1 (nuevo commit puede requerir re-aprobación si el repo descarta reviews obsoletas).
+
+## Fix NU1100 PackageSourceMapping en CI (2026-10-06)
+- Síntoma: job `build` del PR #1 fallaba en `dotnet restore` exit 1 (runner pristino), local verde.
+- Causa: `Testcontainers.*` (punto literal) no matchea el ID desnudo `Testcontainers`, y faltaban patrones para transitivos `Pipelines.Sockets.Unofficial`, `Humanizer.Core`, `Mono.TextTemplating` → NU1100 "source(s) were not considered".
+- Fix en `nuget.config`: patrones exactos `Testcontainers` + los 3 transitivos; eliminada línea duplicada `Testcontainers.*`. Mapeo como control supply-chain intacto.
+- Verificado con `dotnet restore --force` (re-resolución total como runner pristino) + build 0/0.
