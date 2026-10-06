@@ -268,3 +268,9 @@
 - Causa: `Testcontainers.*` (punto literal) no matchea el ID desnudo `Testcontainers`, y faltaban patrones para transitivos `Pipelines.Sockets.Unofficial`, `Humanizer.Core`, `Mono.TextTemplating` → NU1100 "source(s) were not considered".
 - Fix en `nuget.config`: patrones exactos `Testcontainers` + los 3 transitivos; eliminada línea duplicada `Testcontainers.*`. Mapeo como control supply-chain intacto.
 - Verificado con `dotnet restore --force` (re-resolución total como runner pristino) + build 0/0.
+
+## Fix NU1100 iterativo hasta lista exhaustiva (2026-10-06)
+- El fix de 4 patrones no bastó: el head `7a9c11d` seguía fallando en `restore` en CI.
+- Lección clave: `restore --force` con caché tibia NO revalida el mapeo; reproducir runner pristino exige carpeta de paquetes vacía: `dotnet restore --force --no-cache /p:RestorePackagesPath=<temp>`.
+- Enumeración iterativa: `SSH.NET` + `SharpZipLib` (transitivos Testcontainers.MsSql), luego `BouncyCastle.Cryptography` (transitivo de SSH.NET); verificación final con carpeta vacía → 0 NU1100.
+- Tras el fix: `dotnet restore` normal + build Release 0/0 (workspace limpio).
