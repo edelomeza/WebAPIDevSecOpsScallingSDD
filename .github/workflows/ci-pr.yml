@@ -1,0 +1,69 @@
+name: ci-pr
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [phase03]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+
+  unit:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test UnitTest/UnitTest.csproj -c Release --no-build
+
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test SecurityTest/SecurityTest.csproj -c Release --no-build
+
+  integration:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build
+
+  semgrep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install semgrep
+      - run: semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off
