@@ -274,3 +274,9 @@
 - Lección clave: `restore --force` con caché tibia NO revalida el mapeo; reproducir runner pristino exige carpeta de paquetes vacía: `dotnet restore --force --no-cache /p:RestorePackagesPath=<temp>`.
 - Enumeración iterativa: `SSH.NET` + `SharpZipLib` (transitivos Testcontainers.MsSql), luego `BouncyCastle.Cryptography` (transitivo de SSH.NET); verificación final con carpeta vacía → 0 NU1100.
 - Tras el fix: `dotnet restore` normal + build Release 0/0 (workspace limpio).
+
+## Fix flake paralelo + semgrep metrics (2026-10-06)
+- CI del PR #1: `VenCatEstado.CrudFlow` falló (`TotalCount==1` no hallado) + `semgrep scan` exit 2 (`--config=auto` incompatible con `--metrics=off`).
+- Flake: 10 asserts exactos `TotalCount==1` en 5 clases Integration preexistentes sobre store InMemory compartido en paralelo; nuestros tests de Venta ensanchan la ventana de colisión. Fix sistémico sin tocar tests: `IntegrationTest/xunit.runner.json` (`parallelizeTestCollections: false`, registrado en csproj) — item pendiente del checklist `10-testing-strategy`.
+- Semgrep: quitado `--metrics=off` (desviación registrada vs literal AGENTS.md §6, pensado para `ci`; `scan` lo rechaza).
+- Verificado: IntegrationTest 62/62 en serie (4m35, dentro del timeout CI 30min); Unit 176/176; Security 49/49.
