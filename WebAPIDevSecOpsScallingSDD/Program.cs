@@ -75,6 +75,9 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<Services.ITotpService, Services.FakeTotpService>();
             services.AddScoped<Services.ILogin2FaService, Services.Login2FaService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.Login2FaVerifyRequest>, Validators.Login2FaVerifyRequestValidator>();
+            services.AddScoped<Services.IRefreshTokenService, Services.RefreshTokenService>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.RefreshRequest>, Validators.RefreshRequestValidator>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.LogoutRequest>, Validators.LogoutRequestValidator>();
             services.AddScoped<Services.ISegUsuarioService, Services.SegUsuarioService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.SegUsuarioCreateDto>, Validators.SegUsuarioCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.SegUsuarioUpdateDto>, Validators.SegUsuarioUpdateValidator>();
