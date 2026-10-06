@@ -2,7 +2,7 @@
 
 ## T1 — Venta síncrona
 - **Crear**: `VentaController`, `VentaService`, DTOs, `RaceConditionTests`.
-- **Verificar**: stock y venta en misma Tx; 5 POST con `existencia=1` → 1 éxito, 4×400.
+- **Verificar**: stock y venta en misma Tx; 5 POST con `existencia=1` → 1 éxito, 4×409 (reescrito desde 4×400 por decisión 409-todo-conflicto, 06-Oct-2026).
 
 ## T2 — Search multifiltro (pendiente)
 - **Modificar**: `Services/VentaService.cs` (+`SearchAsync(clave?, nombreCliente?, inicio?, fin?, page/pageSize)` con JOIN a `CliCliente`), `Controllers/V1/VentaController.cs` (`[HttpGet("search")]` + `CancellationToken` + `BadRequest(new { error })`).

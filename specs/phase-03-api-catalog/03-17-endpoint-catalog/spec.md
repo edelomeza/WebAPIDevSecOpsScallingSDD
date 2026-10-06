@@ -30,6 +30,7 @@ Catálogo consolidado y vivo de todos los endpoints de la API. **Depende de**: `
 | GET/POST | /api/v1/usuarios | AdminOnly+AdminPolicy | Admin 200/min | UsuarioCreateDto | PagedResult<UsuarioDto> | 200/201/400/401/403/429 |
 | PUT/DELETE | /api/v1/usuarios/{id} | AdminOnly+AdminPolicy | Admin 200/min | UsuarioUpdateDto/DeleteDto | UsuarioDto/204 | 204/400/401/403/404/409 |
 | POST | /api/v1/ventas | Bearer | ConcurrentWrites 10 | VenVentaCreateDto | 201 Created | 201/400/401/409/422 |
+| GET | /api/v1/ventas/{id} | Bearer | Global 1000/min | — | VenVentaDto | 200/401/404 |
 | POST | /api/v1/ventas/{id}/detalles | Bearer | ConcurrentWrites 10 | VenVentaDetalleCreateDto | 201 Created | 201/400/401/403/404 |
 | DELETE | /api/v1/ventas/detalles/{id} | Bearer | ConcurrentWrites 10 | — | 204 | 204/401/403/404 |
 | POST | /api/v1/ventas/pedido | AdminOnly+AdminPolicy | Admin 200/min | PedidoCreateDto | PedidoResponseDto | 201/400/401/403 |

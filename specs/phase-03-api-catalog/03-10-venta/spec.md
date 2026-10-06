@@ -4,9 +4,9 @@
 Venta síncrona (legacy) con descuento de stock en la misma transacción, más búsqueda multifiltro de ventas en el mismo flujo. **Depende de**: `03-01`, `03-05`, `03-04`, `03-03`.
 
 ## Requisitos
-1. `POST /api/v1/ventas` (Bearer) crea `VenVenta` + detalles y descuenta stock en una Tx.
-2. DTOs `VenVentaCreateDto/UpdateDto/DeleteDto` + validadores `VenVenta*Validator`.
-3. Carrera: 5 POST paralelos con existencia=1 → 1 éxito, 4×400.
+1. `POST /api/v1/ventas` (Bearer) crea `VenVenta` + detalles y descuenta stock en una Tx (`Services/VentaService.cs`, `Controllers/V1/VentaController.cs`; `GET /api/v1/ventas/{id}` auxiliar para `CreatedAtAction`, fila añadida en `03-17`).
+2. DTOs `VenVentaCreateDto` (+item) / `VenVentaDto` (+detalle) + validadores `VenVentaCreateValidator`/`VenVentaDetalleCreateItemValidator` (`Dtos/VenVentaDtos.cs`, `Validators/VenVentaValidators.cs`). `UpdateDto/DeleteDto` diferidos: sin rutas en catálogo `03-17` (T1 solo exige POST).
+3. Carrera: 5 POST paralelos con existencia=1 → 1 éxito, 4×409 (criterio reescrito desde `4×400` por decisión de usuario 06-Oct-2026: stock insuficiente y concurrencia unificados en `ConcurrencyConflictException` → 409).
 4. `GET /api/v{version:apiVersion}/ventas/search?strClaveVenta=...&strNombreCliente=...&dteFechaInicio=...&dteFechaFin=...&page=1&pageSize=20` → `200 PagedResult<VenVentaDto>`; los 4 filtros opcionales se combinan con AND; sin filtros equivale a paginado completo. Sin `QueryParams` (coherencia con `03-01`/`03-02`/`03-03` T2).
 5. `strClaveVenta` máx 10 (`[StringLength(10)]`, espejo del modelo; coincidencia exacta con `Trim()`); `strNombreCliente` máx 100 (`[StringLength(100)]`, espejo de `CliCliente.strNombreCliente`; `Contains` con `Trim()` vía JOIN a `CliCliente`).
 6. `dteFechaInicio > dteFechaFin` → `400 { error }`; el rango filtra sobre `dteFechaHoraCompra` tolerando nulos (registros sin fecha se excluyen solo si hay filtro de fecha).
@@ -16,7 +16,9 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 10. Tests unit/integration/security del search; Stryker ≥80% en lo nuevo.
 
 ## Diseño
-- Servicio transaccional con concurrencia optimista sobre `ProProducto`; 409/400 ante stock insuficiente.
+- Servicio transaccional (`IsRelational` → Tx explícita en SQL; `SaveChanges` atómico en InMemory, que eleva `TransactionIgnoredWarning` a error) con concurrencia optimista sobre `ProProducto` (`RowVersion`); stock insuficiente y `DbUpdateConcurrencyException` → `ConcurrencyConflictException` → 409; FK desconocida → `ValidationException` → 422; validación sintáctica → 400.
+- Totales (`decTotalVenta = decPrecio × piezas`) calculados servidor; `idSegUsuario` en body con `NOTE (04-01)` (migrar a claim `sub`); `dteFechaHoraCompra = UtcNow` servidor.
+- Caché versionada `venta:version` TTL 60s `$"..."` (`cache:venta:{id}`); `AsNoTracking`, `OrderBy(id)`, `ConfigureAwait(false)`.
 - Search: query con JOIN a `CliCliente` (`idCliCliente`) para el filtro por nombre; clave exacta + nombre `Contains` + rango de fechas (AND); fechas en llave de caché con formato round-trip (`o`) o ticks.
 - `Controllers/V1/VentaController.cs` (`[HttpGet("search")]`, `CancellationToken`, `400` como `BadRequest(new { error })`); sin cambios en DTOs de escritura.
 
@@ -26,17 +28,20 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 - `GET /api/v1/ventas/search?strNombreCliente=ana&dteFechaInicio=2026-01-01&dteFechaFin=2026-12-31&page=1&pageSize=20` → `200 { Items, TotalCount, Page, PageSize }` PascalCase; `400` rango invertido/paginación inválida; `401/403`.
 
 ## Tests
-- `UnitTest/Venta/`, `IntegrationTest/Venta/`, `SecurityTest/Venta/` (T1: race 5 POST).
-- Search Unit (fake `ICacheService`): clave exacta, nombre vía JOIN, rango de fechas, combinación AND de 4 filtros, sin filtros = todo, `inicio>fin` no llega al servicio (400 en controller vía integration), nulos de fecha, caché y llaves/TTL.
-- Search Integration (`TestAuthHandler`): 200 + `TotalCount`, rango invertido → 400, `page=0` → 400, `403` rol `User`.
-- Search Security: anónimo → `401` en `search`.
-- Stryker (config del slice, `ignore-mutations: ["Boolean"]`): ≥80%.
+- `UnitTest/Venta/` (10: `VentaServiceTests` 8 + `VenVentaValidatorTests` 2), `IntegrationTest/Venta/` (`VentaControllerTests` 5 + `RaceConditionTests` 1 en MsSql Testcontainers puerto 14336 + estado `race`), `SecurityTest/Venta/` (2×401).
+- Stryker `stryker-0310.json` (`VentaService.cs`, `ignore-mutations Boolean`): **83.93%** (47 killed, 8 survived, 1 no-coverage; gaps: llaves de caché string, `OrderBy` dirección, `!=` en detalles) — gate ≥80% cumplido.
+- T2 search pendiente: Search Unit (clave exacta, nombre-JOIN, rango, AND, sin-filtros, nulos, caché/TTL), Search Integration (200/400/400/403), Search Security (401).
 
 ## Criterios
-- 5 POST paralelos con existencia=1 → 1 éxito, 4×400.
-- `dotnet build -c Release --no-restore` → 0/0; `dotnet test <Unit|Integration|Security>Test -c Release --no-build` 100% verdes.
-- `GET /api/v1/ventas/search?strClaveVenta=<clave-seed>` → 200 con `TotalCount>=1`; `?dteFechaInicio=<fin>&dteFechaFin=<inicio>` → 400 con `error`.
-- Stryker en `VentaService` ≥80%; `dotnet build` tras Stryker antes de `--no-build` (`AGENTS.md` §4).
+- 5 POST paralelos con existencia=1 → 1×201, 4×409 (MsSql real; stock final 0).
+- `dotnet build -c Release --no-restore` → 0/0; `dotnet test UnitTest` → 169/169; `SecurityTest` → 48/48; `IntegrationTest` → 58/58.
+- Stryker en `VentaService` ≥80% (medido 83.93%); `dotnet build` tras Stryker antes de `--no-build` (`AGENTS.md` §4).
+- T2 pendiente: `GET search?strClaveVenta=<clave>` → 200 `TotalCount>=1`; rango invertido → 400 `error`.
+
+## Criterios
+- 5 POST paralelos con existencia=1 → 1×201, 4×409 (MsSql real; stock final 0).
+- `dotnet build -c Release --no-restore` → 0/0; `dotnet test UnitTest` → 169/169; `SecurityTest` → 48/48; `IntegrationTest` → 58/58.
+- Stryker en `VentaService` ≥80% (medido 83.93%); `dotnet build` tras Stryker antes de `--no-build` (`AGENTS.md` §4).
 
 ## Límites
 - Saga asíncrona en `03-12`…`03-15` / fase 06.
@@ -45,7 +50,7 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 - Consistencia eventual de lectura ≤60s por rotación de versión en writes.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
-- **Revisores:** @arquitecto-principal (1 Revisor)
+- **Estado:** 🚧 Borrador con evidencia (T1)
+- **Revisores:** —
 - **Fecha:** 06-Oct-2026
-- **Detalle:** T1 venta legacy + T2 search multifiltro especificados; pendientes de ejecución.
+- **Detalle:** T1 venta legacy ejecutado (Tx + race 1×201/4×409 + Stryker 83.93%, suites verdes); criterio race reescrito `4×400`→`4×409` por decisión de usuario; T2 search pendiente de ejecución y firma.

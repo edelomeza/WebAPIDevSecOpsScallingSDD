@@ -2,7 +2,8 @@
 
 1. Mapeo
 
-- Crear: VentaController, VentaService, DTOs, RaceConditionTests.cs.
+- Crear: `Dtos/VenVentaDtos.cs`, `Validators/VenVentaValidators.cs`, `Services/VentaService.cs`, `Controllers/V1/VentaController.cs`, `UnitTest/Venta/`, `IntegrationTest/Venta/`, `SecurityTest/Venta/`, `stryker-0310.json`.
+- Modificar: `Program.cs` (DI servicio + validador), `specs/phase-03-api-catalog/03-17-endpoint-catalog/spec.md` (fila `GET /api/v1/ventas/{id}`), `Memoria.md`.
 - Más (T2): `Services/VentaService.cs` (+`SearchAsync` + interfaz), `Controllers/V1/VentaController.cs` (`[HttpGet("search")]`, 4 filtros + `page/pageSize`, `CancellationToken`, `{ error }`).
 - Modificar tests: `UnitTest/Venta/`, `IntegrationTest/Venta/`, `SecurityTest/Venta/` (+ search).
 - Crear/ampliar config Stryker del slice (`ignore-mutations: ["Boolean"]`).
@@ -14,8 +15,9 @@
 
 3. Guardarraíles
 
-- Stock y venta en misma Tx.
-- Race condition: 5 POST con existencia=1 → 1 éxito, 4×400.
+- Stock y venta en misma Tx (explícita en SQL; `SaveChanges` en InMemory).
+- Race condition: 5 POST con existencia=1 → 1×201, 4×409 (MsSql Testcontainers puerto 14336 + estado `race`).
+- Stock insuficiente y `DbUpdateConcurrencyException` → 409; FK → 422; validación → 400; `decTotalVenta` servidor.
 - Search: no exponer entidades relacionadas completas (solo `VenVentaDto`); `400` siempre `{ error }`; prefijo `cache:` + `venta:`; TTL 60s; tolerar `dteFechaHoraCompra` nula.
 - `dotnet build` tras Stryker antes de `--no-build`.
 
