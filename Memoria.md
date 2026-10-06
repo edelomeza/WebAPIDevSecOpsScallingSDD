@@ -280,3 +280,8 @@
 - Flake: 10 asserts exactos `TotalCount==1` en 5 clases Integration preexistentes sobre store InMemory compartido en paralelo; nuestros tests de Venta ensanchan la ventana de colisión. Fix sistémico sin tocar tests: `IntegrationTest/xunit.runner.json` (`parallelizeTestCollections: false`, registrado en csproj) — item pendiente del checklist `10-testing-strategy`.
 - Semgrep: quitado `--metrics=off` (desviación registrada vs literal AGENTS.md §6, pensado para `ci`; `scan` lo rechaza).
 - Verificado: IntegrationTest 62/62 en serie (4m35, dentro del timeout CI 30min); Unit 176/176; Security 49/49.
+
+## SAST pinneado de actions (2026-10-06)
+- Primer `semgrep scan` real en CI: 0 hallazgos en C# (118 archivos), 10 bloqueantes `github-actions-mutable-action-tag` todos en `ci-pr.yml`.
+- Fix: las 10 refs a SHAs inmutables (`checkout`/`setup-dotnet`/`setup-python` resueltos vía API al momento) + comentario `# v4/# v5` (Dependabot los sigue actualizando).
+- Lección: pinear actions desde el día 1; el SAST ya pagó en su primera corrida.
