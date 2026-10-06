@@ -1,0 +1,166 @@
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Asp.Versioning;
+using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebAPIDevSecOpsScallingSDD.Dtos;
+using WebAPIDevSecOpsScallingSDD.Services;
+
+namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
+{
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/empleados")]
+    [Authorize(Policy = "AdminPolicy")]
+    public sealed class EmpEmpleadoController : ControllerBase
+    {
+        private readonly IEmpEmpleadoService _service;
+        private readonly IValidator<EmpEmpleadoCreateDto> _createValidator;
+        private readonly IValidator<EmpEmpleadoUpdateDto> _updateValidator;
+        private readonly IValidator<EmpEmpleadoDeleteDto> _deleteValidator;
+
+        public EmpEmpleadoController(
+            IEmpEmpleadoService service,
+            IValidator<EmpEmpleadoCreateDto> createValidator,
+            IValidator<EmpEmpleadoUpdateDto> updateValidator,
+            IValidator<EmpEmpleadoDeleteDto> deleteValidator)
+        {
+            _service = service;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
+            _deleteValidator = deleteValidator;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<PagedResult<EmpEmpleadoDto>>> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest(new { error = "Page must be >= 1 and pageSize between 1 and 100." });
+            }
+
+            return Ok(await _service.GetPagedAsync(page, pageSize, cancellationToken).ConfigureAwait(false));
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<PagedResult<EmpEmpleadoDto>>> Search([FromQuery] string? texto, [FromQuery] int? idTipoEmpleado, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest(new { error = "Page must be >= 1 and pageSize between 1 and 100." });
+            }
+
+            if (idTipoEmpleado.HasValue && idTipoEmpleado.Value <= 0)
+            {
+                return BadRequest(new { error = "idTipoEmpleado debe ser mayor que 0." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(texto) && texto.Trim().Length > 50)
+            {
+                return BadRequest(new { error = "El texto debe tener como máximo 50 caracteres." });
+            }
+
+            return Ok(await _service.SearchAsync(texto, idTipoEmpleado, page, pageSize, cancellationToken).ConfigureAwait(false));
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<EmpEmpleadoDto>> GetById(int id, CancellationToken cancellationToken)
+        {
+            var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+            return dto is null ? NotFound() : Ok(dto);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<EmpEmpleadoDto>> Create(EmpEmpleadoCreateDto dto, CancellationToken cancellationToken)
+        {
+            var failures = await ValidateAsync(_createValidator, dto, cancellationToken).ConfigureAwait(false);
+            if (failures is not null)
+            {
+                return failures;
+            }
+
+            try
+            {
+                var created = await _service.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
+                return CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<EmpEmpleadoDto>> Update(int id, EmpEmpleadoUpdateDto dto, CancellationToken cancellationToken)
+        {
+            if (dto.id != id)
+            {
+                return BadRequest(new { error = "Route id and body id must match." });
+            }
+
+            var failures = await ValidateAsync(_updateValidator, dto, cancellationToken).ConfigureAwait(false);
+            if (failures is not null)
+            {
+                return failures;
+            }
+
+            try
+            {
+                var updated = await _service.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
+                return updated is null ? NotFound() : Ok(updated);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (ConcurrencyConflictException)
+            {
+                return Conflict(new { error = "The record was modified by another process." });
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> Delete(int id, [FromBody] EmpEmpleadoDeleteDto dto, CancellationToken cancellationToken)
+        {
+            if (dto.id != id)
+            {
+                return BadRequest(new { error = "Route id and body id must match." });
+            }
+
+            var failures = await ValidateAsync(_deleteValidator, dto, cancellationToken).ConfigureAwait(false);
+            if (failures is not null)
+            {
+                return failures;
+            }
+
+            try
+            {
+                var deleted = await _service.DeleteAsync(id, dto, cancellationToken).ConfigureAwait(false);
+                return deleted ? NoContent() : NotFound();
+            }
+            catch (ConcurrencyConflictException)
+            {
+                return Conflict(new { error = "The record was modified by another process." });
+            }
+        }
+
+        private async Task<ActionResult?> ValidateAsync<T>(IValidator<T> validator, T dto, CancellationToken cancellationToken)
+        {
+            ValidationResult result = await validator.ValidateAsync(dto, cancellationToken).ConfigureAwait(false);
+            if (result.IsValid)
+            {
+                return null;
+            }
+
+            foreach (var failure in result.Errors.DistinctBy(e => (e.PropertyName, e.ErrorMessage)))
+            {
+                ModelState.AddModelError(failure.PropertyName, failure.ErrorMessage);
+            }
+
+            return ValidationProblem();
+        }
+    }
+}

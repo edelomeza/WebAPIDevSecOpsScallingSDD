@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="ChaosTest/ChaosTest.csproj" Id="67d801da-bd04-41d7-8d54-d0b1a4a049af" />
+  <Project Path="ContractTest/ContractTest.csproj" Id="470c5dcd-a3bf-4f1f-8a66-46a10e5ae7a3" />
+  <Project Path="DatabaseTest/DatabaseTest.csproj" Id="a03bbe77-a1b8-467a-85f9-602baec2cf5c" />
+  <Project Path="IntegrationTest/IntegrationTest.csproj" Id="f8790256-c32d-4bd1-85b1-cba9fd2566ae" />
+  <Project Path="MutationTest/MutationTest.csproj" Id="984f1f1e-0557-47d9-82ce-0fc43d34bc5b" />
+  <Project Path="PerformanceTest/PerformanceTest.csproj" Id="31cc3655-56a8-490b-afb7-1166b973dc67" />
+  <Project Path="SecurityTest/SecurityTest.csproj" Id="94fdf726-169e-42b8-8953-bb65a93621bf" />
+  <Project Path="UnitTest/UnitTest.csproj" Id="b6a986e1-c264-46a6-948f-58c923db5890" />
+  <Project Path="WebAPIDevSecOpsScallingSDD/WebAPIDevSecOpsScallingSDD.csproj" />
+</Solution>

@@ -1,0 +1,9 @@
+.git/
+.vs/
+**/bin/
+**/obj/
+specs/
+reports/
+perf-reports/
+StrykerOutput/
+**/*.user

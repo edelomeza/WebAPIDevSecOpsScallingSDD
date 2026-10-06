@@ -1,0 +1,6 @@
+@WebAPIDevSecOpsScallingSDD_HostAddress = http://localhost:5068
+
+GET {{WebAPIDevSecOpsScallingSDD_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

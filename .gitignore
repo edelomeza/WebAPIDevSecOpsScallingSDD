@@ -1,0 +1,60 @@
+## .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Local secrets & overrides
+appsettings.Local.json
+appsettings.*.Local.json
+*.secrets.json
+secrets.json
+
+## Env files
+.env
+.env.*
+
+## Certificates & keys
+*.pfx
+*.pem
+*.key
+*.p12
+*.crt
+*.cer
+*.jks
+
+## Publish profiles
+*.publishsettings
+
+## Test / mutation / performance artifacts
+reports/
+perf-reports/
+StrykerOutput/
+TestResults/
+*.trx
+
+## Logs
+logs/
+*.log
+
+## Coverage
+coverage/
+*.coverage
+*.coveragexml
+*.cobertura.xml
+coverage.cobertura.xml
+*.opencover.xml
+
+## Local databases
+*.db
+*.mdf
+*.ldf
+*.sdf
+*.sqlite
+
+## OS / editor residue
+.DS_Store
+Thumbs.db
+*.orig
+*.bak
