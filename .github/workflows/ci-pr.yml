@@ -66,4 +66,4 @@ jobs:
         with:
           python-version: '3.x'
       - run: pip install semgrep
-      - run: semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off
+      - run: semgrep scan --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off
