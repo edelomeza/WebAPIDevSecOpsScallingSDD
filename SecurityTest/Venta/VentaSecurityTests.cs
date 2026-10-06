@@ -35,5 +35,16 @@ namespace SecurityTest.Venta
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
+
+        [Fact]
+        public async Task AnonymousSearchIsUnauthorized()
+        {
+            using var factory = new WebApplicationFactory<Program>();
+            using var client = factory.CreateClient();
+
+            var response = await client.GetAsync(new Uri("/api/v1/ventas/search?page=1&pageSize=20", UriKind.Relative));
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
     }
 }

@@ -16,6 +16,8 @@ namespace WebAPIDevSecOpsScallingSDD.Services
         Task<VenVentaDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
         Task<VenVentaDto> CreateAsync(VenVentaCreateDto dto, CancellationToken cancellationToken = default);
+
+        Task<PagedResult<VenVentaDto>> SearchAsync(string? clave, string? nombreCliente, DateTime? inicio, DateTime? fin, int page, int pageSize, CancellationToken cancellationToken = default);
     }
 
     public sealed class VentaService : IVentaService
@@ -141,6 +143,38 @@ namespace WebAPIDevSecOpsScallingSDD.Services
             var created = await _db.VenVentas.AsNoTracking().FirstAsync(e => e.id == venta.id, cancellationToken).ConfigureAwait(false);
             var createdDetalles = await _db.VenVentaDetalles.AsNoTracking().Where(d => d.idVenVenta == venta.id).OrderBy(d => d.id).ToListAsync(cancellationToken).ConfigureAwait(false);
             return ToDto(created, createdDetalles);
+        }
+
+        public async Task<PagedResult<VenVentaDto>> SearchAsync(string? clave, string? nombreCliente, DateTime? inicio, DateTime? fin, int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            var claveLimpia = (clave ?? string.Empty).Trim();
+            var nombreLimpio = (nombreCliente ?? string.Empty).Trim();
+            var iniStr = inicio.HasValue ? inicio.Value.ToString("o") : "null";
+            var finStr = fin.HasValue ? fin.Value.ToString("o") : "null";
+            var version = await _cache.GetAsync<int>(CachePrefix, VersionKey, cancellationToken).ConfigureAwait(false);
+            var key = $"venta:search:{version}:{claveLimpia}:{nombreLimpio}:{iniStr}:{finStr}:{page}:{pageSize}";
+            var cached = await _cache.GetAsync<PagedResult<VenVentaDto>>(CachePrefix, key, cancellationToken).ConfigureAwait(false);
+            if (cached is not null)
+            {
+                return cached;
+            }
+
+            var query = from v in _db.VenVentas.AsNoTracking()
+                        join c in _db.CliClientes.AsNoTracking() on v.idCliCliente equals c.id
+                        where (claveLimpia.Length == 0 || v.strClaveVenta == claveLimpia)
+                            && (nombreLimpio.Length == 0 || c.strNombreCliente.Contains(nombreLimpio))
+                            && (!inicio.HasValue || (v.dteFechaHoraCompra.HasValue && v.dteFechaHoraCompra.Value >= inicio.Value))
+                            && (!fin.HasValue || (v.dteFechaHoraCompra.HasValue && v.dteFechaHoraCompra.Value <= fin.Value))
+                        orderby v.id
+                        select v;
+            var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+            var ventas = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var ids = ventas.Select(e => e.id).ToList();
+            var detalles = await _db.VenVentaDetalles.AsNoTracking().Where(d => ids.Contains(d.idVenVenta)).OrderBy(d => d.id).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var items = ventas.Select(e => ToDto(e, detalles.Where(d => d.idVenVenta == e.id).ToList())).ToList();
+            var result = new PagedResult<VenVentaDto> { Items = items, TotalCount = total, Page = page, PageSize = pageSize };
+            await _cache.SetAsync(CachePrefix, key, result, CacheTtl, cancellationToken).ConfigureAwait(false);
+            return result;
         }
 
         private static async Task EnsureExistsAsync<T>(IQueryable<T> query, int id, string nombre, CancellationToken cancellationToken)

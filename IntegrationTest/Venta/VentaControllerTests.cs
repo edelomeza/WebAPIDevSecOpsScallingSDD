@@ -106,6 +106,82 @@ namespace IntegrationTest.Venta
             Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         }
 
+        [Fact]
+        public async Task SearchMultifilterReturnsPaged()
+        {
+            using var factory = CreateAdminFactory();
+            using var client = factory.CreateClient();
+            AddAdminRole(client);
+
+            var first = await SeedFksAsync(client, "Srch1", existencia: 5, precio: 10m);
+            var second = await SeedFksAsync(client, "Srch2", existencia: 5, precio: 10m);
+            Assert.Equal(HttpStatusCode.Created, (await PostVentaAsync(client, first.ClienteId, first.UsuarioId, first.EstadoId, first.ProductoId, "VTA-SRCH01", 1)).StatusCode);
+            Assert.Equal(HttpStatusCode.Created, (await PostVentaAsync(client, second.ClienteId, second.UsuarioId, second.EstadoId, second.ProductoId, "VTA-SRCH02", 1)).StatusCode);
+
+            var byClave = await client.GetAsync(new Uri("/api/v1/ventas/search?strClaveVenta=VTA-SRCH01&page=1&pageSize=20", UriKind.Relative));
+            Assert.Equal(HttpStatusCode.OK, byClave.StatusCode);
+            using var byClaveDoc = JsonDocument.Parse(await byClave.Content.ReadAsStringAsync());
+            Assert.Equal(1, byClaveDoc.RootElement.GetProperty("TotalCount").GetInt32());
+
+            var byNombre = await client.GetAsync(new Uri("/api/v1/ventas/search?strNombreCliente=VentaSrch2&page=1&pageSize=20", UriKind.Relative));
+            using var byNombreDoc = JsonDocument.Parse(await byNombre.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.OK, byNombre.StatusCode);
+            Assert.Equal(1, byNombreDoc.RootElement.GetProperty("TotalCount").GetInt32());
+
+            var all = await client.GetAsync(new Uri("/api/v1/ventas/search?page=1&pageSize=20", UriKind.Relative));
+            using var allDoc = JsonDocument.Parse(await all.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.OK, all.StatusCode);
+            Assert.True(allDoc.RootElement.GetProperty("TotalCount").GetInt32() >= 2);
+
+            var oldRange = await client.GetAsync(new Uri("/api/v1/ventas/search?dteFechaInicio=2000-01-01&dteFechaFin=2000-12-31&page=1&pageSize=20", UriKind.Relative));
+            using var oldRangeDoc = JsonDocument.Parse(await oldRange.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.OK, oldRange.StatusCode);
+            Assert.Equal(0, oldRangeDoc.RootElement.GetProperty("TotalCount").GetInt32());
+
+            await CleanupFksAsync(client, first);
+            await CleanupFksAsync(client, second);
+        }
+
+        [Fact]
+        public async Task SearchInvertedRangeReturnsBadRequest()
+        {
+            using var factory = CreateAdminFactory();
+            using var client = factory.CreateClient();
+            AddAdminRole(client);
+
+            var response = await client.GetAsync(new Uri("/api/v1/ventas/search?dteFechaInicio=2026-12-31&dteFechaFin=2026-01-01&page=1&pageSize=20", UriKind.Relative));
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("error", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task SearchInvalidPagingAndFiltersReturnBadRequest()
+        {
+            using var factory = CreateAdminFactory();
+            using var client = factory.CreateClient();
+            AddAdminRole(client);
+
+            var page = await client.GetAsync(new Uri("/api/v1/ventas/search?page=0&pageSize=20", UriKind.Relative));
+            Assert.Equal(HttpStatusCode.BadRequest, page.StatusCode);
+
+            var clave = await client.GetAsync(new Uri("/api/v1/ventas/search?strClaveVenta=CLAVE-MUY-LARGA&page=1&pageSize=20", UriKind.Relative));
+            Assert.Equal(HttpStatusCode.BadRequest, clave.StatusCode);
+        }
+
+        [Fact]
+        public async Task SearchWithUserRoleReturnsOk()
+        {
+            using var factory = CreateAdminFactory();
+            using var client = factory.CreateClient();
+            client.DefaultRequestHeaders.Add("X-Test-Role", "User");
+
+            var response = await client.GetAsync(new Uri("/api/v1/ventas/search?page=1&pageSize=20", UriKind.Relative));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
         private sealed record Fks(int ClienteId, string ClienteRow, int UsuarioId, string UsuarioRow, int EstadoId, int ProductoId, string ProductoRow);
 
         private static async Task<Fks> SeedFksAsync(HttpClient client, string tag, int existencia, decimal precio)

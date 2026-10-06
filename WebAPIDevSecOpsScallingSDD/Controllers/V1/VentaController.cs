@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,32 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         {
             _service = service;
             _createValidator = createValidator;
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<PagedResult<VenVentaDto>>> Search([FromQuery] string? strClaveVenta, [FromQuery] string? strNombreCliente, [FromQuery] DateTime? dteFechaInicio, [FromQuery] DateTime? dteFechaFin, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            if ((strClaveVenta ?? string.Empty).Trim().Length > 10)
+            {
+                return BadRequest(new { error = "La clave debe tener como máximo 10 caracteres." });
+            }
+
+            if ((strNombreCliente ?? string.Empty).Trim().Length > 100)
+            {
+                return BadRequest(new { error = "El nombre debe tener como máximo 100 caracteres." });
+            }
+
+            if (dteFechaInicio.HasValue && dteFechaFin.HasValue && dteFechaInicio.Value > dteFechaFin.Value)
+            {
+                return BadRequest(new { error = "La fecha de inicio no puede ser mayor que la fecha de fin." });
+            }
+
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest(new { error = "Page must be >= 1 and pageSize between 1 and 100." });
+            }
+
+            return Ok(await _service.SearchAsync(strClaveVenta, strNombreCliente, dteFechaInicio, dteFechaFin, page, pageSize, cancellationToken).ConfigureAwait(false));
         }
 
         [HttpGet("{id:int}")]

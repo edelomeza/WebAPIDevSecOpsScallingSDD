@@ -247,3 +247,12 @@
 - Lecciones nuevas: EF InMemory eleva `TransactionIgnoredWarning` a error con warnings-as-errors → Tx explícita condicionada a `IsRelational` (precedente `DatabaseSeeder`); `await using` dispara CA2007 en IntegrationTest (usar try/finally como `ProviderStatesTests`); DTOs con colección mutable fallan CA2227+CA1002 → `IReadOnlyList` con setter (como `PagedResult`).
 - Verificacion: build Release 0/0; UnitTest 169/169; SecurityTest 48/48; IntegrationTest 58/58 (incluye race 37s).
 - Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; T2 search pendiente).
+
+## T2 — 03-10 Search multifiltro ejecutado (2026-10-06)
+- `Services/VentaService.cs` +`SearchAsync(clave?, nombre?, inicio?, fin?, page, pageSize)`: JOIN `CliCliente` (`idCliCliente`), clave exacta `Trim()==`, nombre `Contains` `Trim()`, rango sobre `dteFechaHoraCompra` (nulos excluidos solo con filtro), `OrderBy(id)`, detalles por venta en 2ª query, caché `cache:venta:search:{version}:{clave}:{nombre}:{o}:{o}:{page}:{size}` TTL 60s (reusa `venta:version` de T1).
+- `Controllers/V1/VentaController.cs` `[HttpGet("search")]` (params sueltos, sin `QueryParams`): clave>10 → 400, nombre>100 → 400, `inicio>fin` → 400, paginación → 400; hereda `[Authorize]` Bearer.
+- Tests: `UnitTest/Venta/VentaSearchTests.cs` (7: exacta/trim, JOIN, rango+nulos, AND, paginado, nulos-sin-filtro, caché/TTL/llave), `VentaControllerTests` +4 (multifiltro 200, rango invertido 400, paginación/filtros 400, rol `User` → 200), `SecurityTest/Venta` +1 (search anónimo 401).
+- Desviación: `403` no aplica en search (Bearer sin policy; `User` → 200 verificado; espejo `03-06`); registrada en spec/task.
+- Lección: xUnit2013 prohíbe `Assert.Equal` para tamaño de colección (`Assert.Single`); mi expectativa inicial en JOIN (2 vs 3 ventas de Ana) la cazó el propio test.
+- Verificacion: build 0/0; UnitTest 176/176; SecurityTest 49/49; IntegrationTest 62/62; Stryker 82.11% (gate ≥80; T1 era 83.93%) + build restaurativo.
+- Estado spec: 🚧 Borrador con evidencia T1+T2 (pendiente firma).

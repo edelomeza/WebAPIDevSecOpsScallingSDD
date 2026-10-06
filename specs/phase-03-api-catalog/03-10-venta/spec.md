@@ -28,15 +28,15 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 - `GET /api/v1/ventas/search?strNombreCliente=ana&dteFechaInicio=2026-01-01&dteFechaFin=2026-12-31&page=1&pageSize=20` → `200 { Items, TotalCount, Page, PageSize }` PascalCase; `400` rango invertido/paginación inválida; `401/403`.
 
 ## Tests
-- `UnitTest/Venta/` (10: `VentaServiceTests` 8 + `VenVentaValidatorTests` 2), `IntegrationTest/Venta/` (`VentaControllerTests` 5 + `RaceConditionTests` 1 en MsSql Testcontainers puerto 14336 + estado `race`), `SecurityTest/Venta/` (2×401).
-- Stryker `stryker-0310.json` (`VentaService.cs`, `ignore-mutations Boolean`): **83.93%** (47 killed, 8 survived, 1 no-coverage; gaps: llaves de caché string, `OrderBy` dirección, `!=` en detalles) — gate ≥80% cumplido.
-- T2 search pendiente: Search Unit (clave exacta, nombre-JOIN, rango, AND, sin-filtros, nulos, caché/TTL), Search Integration (200/400/400/403), Search Security (401).
+- `UnitTest/Venta/` (17: `VentaServiceTests` 8 + `VenVentaValidatorTests` 2 + `VentaSearchTests` 7: clave exacta/trim, nombre-JOIN, rango+nulos, AND, paginado, nulos-sin-filtro, caché/TTL), `IntegrationTest/Venta/` (`VentaControllerTests` 9 + `RaceConditionTests` 1 en MsSql Testcontainers puerto 14336 + estado `race`), `SecurityTest/Venta/` (3×401).
+- Search Integration: 200 + `TotalCount` (clave/nombre/sin-filtros/rango-vacío), rango invertido → 400, `page=0`/clave larga → 400, rol `User` → 200 (Bearer sin policy: **403 no aplica**, espejo `03-06`).
+- Stryker `stryker-0310.json` (`VentaService.cs`, `ignore-mutations Boolean`): **82.11%** T2 (83.93% T1) — gate ≥80% cumplido.
 
 ## Criterios
 - 5 POST paralelos con existencia=1 → 1×201, 4×409 (MsSql real; stock final 0).
-- `dotnet build -c Release --no-restore` → 0/0; `dotnet test UnitTest` → 169/169; `SecurityTest` → 48/48; `IntegrationTest` → 58/58.
-- Stryker en `VentaService` ≥80% (medido 83.93%); `dotnet build` tras Stryker antes de `--no-build` (`AGENTS.md` §4).
-- T2 pendiente: `GET search?strClaveVenta=<clave>` → 200 `TotalCount>=1`; rango invertido → 400 `error`.
+- `dotnet build -c Release --no-restore` → 0/0; `dotnet test UnitTest` → 176/176; `SecurityTest` → 49/49; `IntegrationTest` → 62/62.
+- Stryker en `VentaService` ≥80% (medido 82.11% T2); `dotnet build` tras Stryker antes de `--no-build` (`AGENTS.md` §4).
+- `GET /api/v1/ventas/search?strClaveVenta=<clave>` → 200 con `TotalCount>=1`; `?dteFechaInicio=<fin>&dteFechaFin=<inicio>` → 400 con `error`.
 
 ## Criterios
 - 5 POST paralelos con existencia=1 → 1×201, 4×409 (MsSql real; stock final 0).
@@ -50,7 +50,7 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 - Consistencia eventual de lectura ≤60s por rotación de versión en writes.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (T1)
+- **Estado:** 🚧 Borrador con evidencia (T1+T2)
 - **Revisores:** —
 - **Fecha:** 06-Oct-2026
-- **Detalle:** T1 venta legacy ejecutado (Tx + race 1×201/4×409 + Stryker 83.93%, suites verdes); criterio race reescrito `4×400`→`4×409` por decisión de usuario; T2 search pendiente de ejecución y firma.
+- **Detalle:** T1 + T2 ejecutados (Tx + race 1×201/4×409 + search multifiltro + Stryker 82.11%, suites verdes); criterio race reescrito `4×400`→`4×409` por decisión de usuario; 403 no aplica en search (Bearer sin policy); pendiente firma.
