@@ -231,3 +231,57 @@
 - Añadidos: `.env`/`.env.*`, certificados (`*.pfx/.pem/.key/.p12/.crt/.cer/.jks`), `secrets.json` bare (user secrets; `*.secrets.json` no lo matcheaba), `*.publishsettings`, cobertura extendida (`*.coveragexml/*.cobertura.xml/coverage.cobertura.xml/*.opencover.xml`), DBs locales (`*.db/.mdf/.ldf/.sdf/.sqlite`), residuos (`.DS_Store/Thumbs.db/*.orig/*.bak`).
 - Auditoría previa: cero secretos reales (solo placeholders, dummies de test y credenciales Testcontainers efímeras); `nuget.config` y `Directory.Build.props` limpios; `stryker-030*.json` quedan trackeados a propósito.
 - Decisión usuario: `appsettings.json` reales siguen trackeados con placeholders + `skip-worktree` local (documentado en `README.md`); refactor `AppSettingsTests` a env/`appsettings.Test.json` queda como pendiente mediano plazo.
+
+## T1 — 03-08 Refresh & Logout ejecutado, alcance opaco con NOTEs (2026-10-06)- Alcance cerrado con usuario: opaco + NOTE (04-01), 2 controllers separados, logout fallback jti=claim ?? hash(refresh) + NOTE. JWT real/blacklist larga/429 quedan en 04-01/04-04.
+- Slice: `Dtos/RefreshDtos.cs` (`RefreshRequest/RefreshResponse{Token,RefreshToken}/LogoutRequest`), `Validators/RefreshValidators.cs` (NotEmpty Max200 x2), `Services/RefreshTokenService.cs` (`IRefreshTokenService.Create/Rotate/Revoke/LogoutAsync` → `RefreshResult{Rotated|Invalid}`; SHA-256 hex 64 en `strTokenHash`, rotación vía `strReplacedByTokenHash`, expiración 7d NOTE, `DbUpdateConcurrencyException`→Invalid), `Controllers/V1/RefreshController.cs` (`POST refresh`, `[AllowAnonymous]`, 200/401 genérico) + `LogoutController.cs` (`POST logout`, `[Authorize]`, claim `jti`/`NameIdentifier` o fallback, 204), DI en `Program.cs` (servicio + 2 validadores, sin tocar auth scheme).
+- Guardarraíles: sin substring `token` en llaves (solo `blacklist:{jti}`=`revoked` TTL 120s NOTE 04-02; filas refresh solo en DB, sin `cache:refresh`); sin `System.IdentityModel` (jti como literal, evita paquete nuevo); tokens hex 64 nunca en logs/bodies de error.
+- Tests: `UnitTest/RefreshToken` (9: nulos-ctor, create-hash-solo, rotación+link, reúso→Invalid x2, desconocido/expirado/no-hex/nulo→Invalid, revoke-una-vez, logout-fallback-blacklist+TTL, logout-claim, logout-vacío-sin-caché), `IntegrationTest/Refresh` (5: rota+reúso-401+segunda-rotación-200, desconocido-401-sin-eco, 400, logout-204+luego-401, logout-sin-auth-401; `TestAuthHandler` + `IRefreshTokenService.CreateAsync` scoped + DELETE limpieza), `SecurityTest/Refresh` (3: 401-sin-fugas, 400, logout-anónimo-401).
+- Lecciones: xUnit1030 prohíbe `ConfigureAwait(false)` en cuerpos `[Fact]` de Integration (solo helpers; las 3 líneas del primer build fallaron por esto); `SegUsuario.CrudFlow TotalCount==1` es frágil en paralelo con store InMemory compartido (1/52 falló con Docker recién arrancado, 52/52 al repetir; Refresh y SegUsuario 5/5 aislados) — no tocar fuera de slice, documentar flake.
+- Verificacion: `dotnet restore` (faltaban assets en phase03) → build Release 0/0; UnitTest 159/159; SecurityTest 46/46; IntegrationTest 52/52 (rerun; primer run 51/52 flake `SegUsuario` paralelo); `check_coverage.py` no ejecutable (`python` ausente, stub fase 07).
+
+## T1 — 03-10 Venta síncrona ejecutado (2026-10-06)
+- Alcance cerrado con usuario: Bearer `[Authorize]`, `idSegUsuario` en body + `NOTE (04-01)`, 409-todo-conflicto (criterio `4×400`→`4×409` reescrito), race en MsSql Testcontainers.
+- Slice: `Dtos/VenVentaDtos.cs` (`VenVentaDto`+detalle, `VenVentaCreateDto`+item; `IReadOnlyList` por CA2227/CA1002, `required` en valores por S6964; total servidor `decPrecio×piezas`, fecha servidor), `Validators/VenVentaValidators.cs` (FKs>0, clave NotEmpty Max10, detalles NotEmpty + item>0), `Services/VentaService.cs` (`IVentaService.Create/GetById`; FK triple-check→`ValidationException`→422, stock/concurrencia→`ConcurrencyConflictException`→409, Tx explícita solo `IsRelational`, `venta:version` TTL 60s), `Controllers/V1/VentaController.cs` (`POST` 201 `CreatedAtAction` + `GET {id}` auxiliar, fila añadida en `03-17`), DI en `Program.cs`. `UpdateDto/DeleteDto` diferidos (sin rutas en catálogo).
+- Tests: `UnitTest/Venta` (10: servicio 8 + validadores 2), `IntegrationTest/Venta` (`VentaControllerTests` 5 con FKs vía API + DELETE limpieza + `IntegrationTest/Venta/RaceConditionTests` MsSql puerto 14336 + estado `race`: 5 paralelos → 1×201+4×409, stock 0), `SecurityTest/Venta` (2×401).
+- Stryker `stryker-0310.json` (`VentaService`, Boolean-ignore): **83.93%** (47 killed/8 survived/1 no-coverage/2 compile-error; gaps: strings de llaves caché, `OrderBy` dirección, `!=` detalles) — gate ≥80% cumplido; build restaurativo tras run.
+- Lecciones nuevas: EF InMemory eleva `TransactionIgnoredWarning` a error con warnings-as-errors → Tx explícita condicionada a `IsRelational` (precedente `DatabaseSeeder`); `await using` dispara CA2007 en IntegrationTest (usar try/finally como `ProviderStatesTests`); DTOs con colección mutable fallan CA2227+CA1002 → `IReadOnlyList` con setter (como `PagedResult`).
+- Verificacion: build Release 0/0; UnitTest 169/169; SecurityTest 48/48; IntegrationTest 58/58 (incluye race 37s).
+- Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; T2 search pendiente).
+
+## T2 — 03-10 Search multifiltro ejecutado (2026-10-06)
+- `Services/VentaService.cs` +`SearchAsync(clave?, nombre?, inicio?, fin?, page, pageSize)`: JOIN `CliCliente` (`idCliCliente`), clave exacta `Trim()==`, nombre `Contains` `Trim()`, rango sobre `dteFechaHoraCompra` (nulos excluidos solo con filtro), `OrderBy(id)`, detalles por venta en 2ª query, caché `cache:venta:search:{version}:{clave}:{nombre}:{o}:{o}:{page}:{size}` TTL 60s (reusa `venta:version` de T1).
+- `Controllers/V1/VentaController.cs` `[HttpGet("search")]` (params sueltos, sin `QueryParams`): clave>10 → 400, nombre>100 → 400, `inicio>fin` → 400, paginación → 400; hereda `[Authorize]` Bearer.
+- Tests: `UnitTest/Venta/VentaSearchTests.cs` (7: exacta/trim, JOIN, rango+nulos, AND, paginado, nulos-sin-filtro, caché/TTL/llave), `VentaControllerTests` +4 (multifiltro 200, rango invertido 400, paginación/filtros 400, rol `User` → 200), `SecurityTest/Venta` +1 (search anónimo 401).
+- Desviación: `403` no aplica en search (Bearer sin policy; `User` → 200 verificado; espejo `03-06`); registrada en spec/task.
+- Lección: xUnit2013 prohíbe `Assert.Equal` para tamaño de colección (`Assert.Single`); mi expectativa inicial en JOIN (2 vs 3 ventas de Ana) la cazó el propio test.
+- Verificacion: build 0/0; UnitTest 176/176; SecurityTest 49/49; IntegrationTest 62/62; Stryker 82.11% (gate ≥80; T1 era 83.93%) + build restaurativo.
+- Estado spec: 🚧 Borrador con evidencia T1+T2 (pendiente firma).
+
+## CI PR mínimo para desbloquear checks del PR #1 (2026-10-06)
+- Causa: no existía `.github/workflows/` en el repo → Checks "no jobs"; protección de rama pedía build/test/semgrep inexistentes.
+- Nuevo `.github/workflows/ci-pr.yml` (commit `4891548` en `phase03`): triggers `pull_request→main` + `push→phase03`; jobs `build` → `unit`/`security`/`integration` (`--no-build`, orden 09-01) + `semgrep` (`semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off`); `ubuntu-latest` (Docker para Testcontainers), `setup-dotnet 10.0.x`, timeouts 15/30min. Sin mutation/perf/chaos (solo nightly, fase 09 completa pendiente).
+- Lección: sin `python` local se validó el YAML con `npx -y js-yaml` (parse OK).
+- El workflow va en `phase03` a propósito: GitHub lee los workflows de la rama head, solo así corren en el PR #1 (nuevo commit puede requerir re-aprobación si el repo descarta reviews obsoletas).
+
+## Fix NU1100 PackageSourceMapping en CI (2026-10-06)
+- Síntoma: job `build` del PR #1 fallaba en `dotnet restore` exit 1 (runner pristino), local verde.
+- Causa: `Testcontainers.*` (punto literal) no matchea el ID desnudo `Testcontainers`, y faltaban patrones para transitivos `Pipelines.Sockets.Unofficial`, `Humanizer.Core`, `Mono.TextTemplating` → NU1100 "source(s) were not considered".
+- Fix en `nuget.config`: patrones exactos `Testcontainers` + los 3 transitivos; eliminada línea duplicada `Testcontainers.*`. Mapeo como control supply-chain intacto.
+- Verificado con `dotnet restore --force` (re-resolución total como runner pristino) + build 0/0.
+
+## Fix NU1100 iterativo hasta lista exhaustiva (2026-10-06)
+- El fix de 4 patrones no bastó: el head `7a9c11d` seguía fallando en `restore` en CI.
+- Lección clave: `restore --force` con caché tibia NO revalida el mapeo; reproducir runner pristino exige carpeta de paquetes vacía: `dotnet restore --force --no-cache /p:RestorePackagesPath=<temp>`.
+- Enumeración iterativa: `SSH.NET` + `SharpZipLib` (transitivos Testcontainers.MsSql), luego `BouncyCastle.Cryptography` (transitivo de SSH.NET); verificación final con carpeta vacía → 0 NU1100.
+- Tras el fix: `dotnet restore` normal + build Release 0/0 (workspace limpio).
+
+## Fix flake paralelo + semgrep metrics (2026-10-06)
+- CI del PR #1: `VenCatEstado.CrudFlow` falló (`TotalCount==1` no hallado) + `semgrep scan` exit 2 (`--config=auto` incompatible con `--metrics=off`).
+- Flake: 10 asserts exactos `TotalCount==1` en 5 clases Integration preexistentes sobre store InMemory compartido en paralelo; nuestros tests de Venta ensanchan la ventana de colisión. Fix sistémico sin tocar tests: `IntegrationTest/xunit.runner.json` (`parallelizeTestCollections: false`, registrado en csproj) — item pendiente del checklist `10-testing-strategy`.
+- Semgrep: quitado `--metrics=off` (desviación registrada vs literal AGENTS.md §6, pensado para `ci`; `scan` lo rechaza).
+- Verificado: IntegrationTest 62/62 en serie (4m35, dentro del timeout CI 30min); Unit 176/176; Security 49/49.
+
+## SAST pinneado de actions (2026-10-06)
+- Primer `semgrep scan` real en CI: 0 hallazgos en C# (118 archivos), 10 bloqueantes `github-actions-mutable-action-tag` todos en `ci-pr.yml`.
+- Fix: las 10 refs a SHAs inmutables (`checkout`/`setup-dotnet`/`setup-python` resueltos vía API al momento) + comentario `# v4/# v5` (Dependabot los sigue actualizando).
+- Lección: pinear actions desde el día 1; el SAST ya pagó en su primera corrida.
