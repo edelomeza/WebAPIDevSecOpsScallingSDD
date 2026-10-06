@@ -257,6 +257,11 @@
 - Verificacion: build 0/0; UnitTest 176/176; SecurityTest 49/49; IntegrationTest 62/62; Stryker 82.11% (gate ≥80; T1 era 83.93%) + build restaurativo.
 - Estado spec: 🚧 Borrador con evidencia T1+T2 (pendiente firma).
 
+## Cierre PR #1 Phase03 mergeado a main (2026-10-06)
+- `edelomeza` mergeó 10 commits (`f290815`) con 10 checks verdes tras eliminar la regla fantasma `build & test` de las rules (check requerido sin productor: ningún workflow define ese nombre; los jobs reportan `ci-pr / <job>`).
+- `main` local sincronizado (`7194992`→`f290815`, fast-forward, 31 archivos) + build 0/0 + UnitTest 176/176 en `main`.
+- Specs firmadas: `03-08` y `03-10` → ✅ Aprobado (@usuario, 06-Oct-2026).
+
 ## CI PR mínimo para desbloquear checks del PR #1 (2026-10-06)
 - Causa: no existía `.github/workflows/` en el repo → Checks "no jobs"; protección de rama pedía build/test/semgrep inexistentes.
 - Nuevo `.github/workflows/ci-pr.yml` (commit `4891548` en `phase03`): triggers `pull_request→main` + `push→phase03`; jobs `build` → `unit`/`security`/`integration` (`--no-build`, orden 09-01) + `semgrep` (`semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off`); `ubuntu-latest` (Docker para Testcontainers), `setup-dotnet 10.0.x`, timeouts 15/30min. Sin mutation/perf/chaos (solo nightly, fase 09 completa pendiente).

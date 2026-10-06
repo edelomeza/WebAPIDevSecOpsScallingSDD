@@ -50,7 +50,7 @@ Venta síncrona (legacy) con descuento de stock en la misma transacción, más b
 - Consistencia eventual de lectura ≤60s por rotación de versión en writes.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (T1+T2)
-- **Revisores:** —
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
 - **Fecha:** 06-Oct-2026
-- **Detalle:** T1 + T2 ejecutados (Tx + race 1×201/4×409 + search multifiltro + Stryker 82.11%, suites verdes); criterio race reescrito `4×400`→`4×409` por decisión de usuario; 403 no aplica en search (Bearer sin policy); pendiente firma.
+- **Detalle:** T1 + T2 ejecutados (Tx + race 1×201/4×409 + search multifiltro + Stryker 82.11%, suites 176/49/62 verdes); criterio race reescrito `4×400`→`4×409` por decisión de usuario; 403 no aplica en search (Bearer sin policy); mergeado en PR #1 (`f290815`, 10 checks verdes).
