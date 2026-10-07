@@ -13,7 +13,8 @@ Fase 9.
 
 ## Pasos
 
-Semgrep, SonarAnalyzer, SonarCloud gate, Stryker 80/70/60, Trivy/dockle, ZAP, RESTler.
+Semgrep, SonarAnalyzer, SonarCloud gate (informativo; new code coverage ≥80%), Stryker `break 80/low 80/high 90` por slice (`stryker-XXXX.json` en raíz), Trivy/dockle (HIGH/CRITICAL falla), ZAP en PR y main, RESTler.
+`nuget.config` Package Source Mapping como control supply-chain: patrones exactos por ID (+ transitivos); verificar con restore pristino (ver `09-ci-matrix`).
 
 ## Checklist
 

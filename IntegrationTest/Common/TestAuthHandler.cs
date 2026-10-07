@@ -24,6 +24,12 @@ namespace IntegrationTest.Common
                 identity.AddClaim(new Claim(ClaimTypes.Role, role));
             }
 
+            var userId = Request.Headers["X-Test-UserId"].ToString();
+            if (!string.IsNullOrEmpty(userId))
+            {
+                identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId));
+            }
+
             return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name)));
         }
     }

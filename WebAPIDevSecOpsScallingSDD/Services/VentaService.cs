@@ -214,6 +214,7 @@ namespace WebAPIDevSecOpsScallingSDD.Services
                     idProProducto = d.idProProducto,
                     intPiezaVenta = d.intPiezaVenta,
                     decTotalVenta = d.decTotalVenta,
+                    RowVersion = d.RowVersion,
                 }).ToList(),
                 RowVersion = entity.RowVersion,
             };

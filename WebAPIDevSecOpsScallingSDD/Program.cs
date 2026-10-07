@@ -81,6 +81,13 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<Services.ISegUsuarioService, Services.SegUsuarioService>();
             services.AddScoped<Services.IVentaService, Services.VentaService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.VenVentaCreateDto>, Validators.VenVentaCreateValidator>();
+            services.AddScoped<Services.IVentaDetalleService, Services.VentaDetalleService>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.VenVentaDetalleCreateDto>, Validators.VenVentaDetalleCreateValidator>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.VenVentaDetalleDeleteDto>, Validators.VenVentaDetalleDeleteValidator>();
+            services.AddScoped<Services.IPedidoEventPublisher, Services.FakePedidoEventPublisher>();
+            services.AddScoped<Services.IVentasPedidoService, Services.VentasPedidoService>();
+            services.AddScoped<Services.StockValidatorConsumer>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.PedidoCreateDto>, Validators.PedidoCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.SegUsuarioCreateDto>, Validators.SegUsuarioCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.SegUsuarioUpdateDto>, Validators.SegUsuarioUpdateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.SegUsuarioDeleteDto>, Validators.SegUsuarioDeleteValidator>();

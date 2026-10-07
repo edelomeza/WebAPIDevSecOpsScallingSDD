@@ -17,11 +17,11 @@ Al proteger endpoints y al auditar seguridad.
 
 ## Pasos
 
-1. Marcar cada endpoint con `[Authorize]`/`[Authorize(Policy="AdminOnly")]`.
-2. Asignar policy de rate limiting (`LoginPolicy`, `AdminPolicy`, `ConcurrentWritesPolicy`).
-3. Verificar claims requeridos (`role`, `sub`).
-4. Revisar checklist ASVS L2 (anti-enumeration, secrets, SQLi, XSS, CSRF/CORS, JWT en logs).
-5. Marcar cada ítem ASVS L2 como OK/Parcial/Fail con evidencia (test/comando/doc).
+1. Marcar cada endpoint con `[Authorize]` o `[Authorize(Policy = "AdminPolicy")]` (requiere rol `Admin`; es la policy real — `AdminOnly` no existe en código).
+2. Rate limiting diferido a `04-04`: registrar `NOTE (04-04)` por endpoint (policies objetivo: Login 5/5min, Login2faVerify 10/5min, Global 1000/min, Admin 200/min, ConcurrentWrites 10).
+3. Verificar claims (`NameIdentifier`/`sub` para ownership dif. `NOTE 04-01`; `role` para `AdminPolicy`).
+4. Matriz de tests probada: `Admin→2xx`, `User→403` con `AdminPolicy`, `User→200` en Bearer sin policy (desviación espejo `03-10/03-11`, no 403), anónimo→401 sin fugas.
+5. Revisar checklist ASVS L2 (anti-enumeration, secrets, SQLi, XSS, CSRF/CORS, JWT en logs).
 
 ## Checklist
 

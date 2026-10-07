@@ -59,4 +59,11 @@ namespace WebAPIDevSecOpsScallingSDD.Dtos
 
         public byte[] RowVersion { get; set; } = new byte[] { 1 };
     }
+
+    public sealed class ProProductoAutocompleteDto
+    {
+        public int id { get; set; }
+
+        public string strNombreProducto { get; set; } = string.Empty;
+    }
 }
