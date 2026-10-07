@@ -33,6 +33,7 @@ Diagrama sin estados huérfanos; `IntegrationTest/Saga/` verde.
 ## Límites/trampas
 
 No transiciones sin consumer; no estados sin evidencia.
+Conflicto abierto (fijar al ejecutar `06-04`): esta skill enumera `Pendiente, StockValidado, PagoProcesado, Facturado, Compensado`, pero el código aprobado usa `Registrado` (`02-04`/`TestDataFactory`) y `"Creado"` (`03-12` + `NOTE 06-04`). El canónico se define en `06-04`, no aquí.
 
 ## Referencias
 

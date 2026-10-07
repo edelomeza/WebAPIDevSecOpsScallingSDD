@@ -11,6 +11,8 @@ namespace WebAPIDevSecOpsScallingSDD.Dtos
         public int intPiezaVenta { get; set; }
 
         public decimal decTotalVenta { get; set; }
+
+        public byte[] RowVersion { get; set; } = new byte[] { 1 };
     }
 
     public sealed class VenVentaDto

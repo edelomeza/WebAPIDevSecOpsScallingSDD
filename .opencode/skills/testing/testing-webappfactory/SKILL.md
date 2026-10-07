@@ -9,11 +9,18 @@ Integration/Security con `WebApplicationFactory<Program>`.
 
 ## Pasos
 
-`public partial class Program`; `UseSetting` para JWT y `UseInMemoryDatabase=true`; `Reset()` de estáticos.
+`public partial class Program` (pragmas `S1118`/`CA1515`); `UseInMemoryDatabase=true`; `Reset()` de estáticos (`TokenBlacklist` estático cruza tests sin `Reset()`).
+`TestAuthHandler` ("Test"): rol vía header `X-Test-Role`, usuario vía `X-Test-UserId` (sin header = comportamiento intacto); fábrica Admin con `ConfigureTestServices` + pragma `CA2000`.
 
 ## Checklist
 
-Key ≥32B; InMemory; paralelismo limitado.
+Key ≥32B; InMemory; `IntegrationTest/xunit.runner.json` en serie (`parallelizeTestCollections: false`).
+Matriz por endpoint: `Admin→2xx`, `User→403` con `AdminPolicy`, `User→200` en Bearer sin policy (documentar como desviación espejo `03-10/03-11`), anónimo→401 sin fugas (`Assert.DoesNotContain` del payload).
+Todo test que cree datos los borra al final (`DELETE` con `RowVersion` de la creación): el store InMemory tiene nombre fijo compartido por factories del proceso (`TotalCount==1` es frágil en paralelo).
+
+## Límites/trampas
+
+TokenBlacklist estático cruza tests. Docker Desktop detenido → `DockerUnavailableException`: arrancar daemon antes del rerun. Pedidos/entidades sin endpoint DELETE acumulan filas: no asertar conteos exactos sobre ellas.
 
 ## Límites/trampas
 

@@ -43,7 +43,8 @@ Detalle de venta legacy con restauración de stock al eliminar, más autocomplet
 - Consistencia eventual ≤60s (versión `producto:version` rotada por writes de `03-03`).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
+- **Estado:** 🚧 Borrador con evidencia T1+T2 (pendiente firma)
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 06-Oct-2026
-- **Detalle:** T1 detalle legacy + T2 autocomplete de productos (DTO `03-03` reutilizado) especificados; pendientes de ejecución.
+- **Detalle:** T1+T2 ejecutados: `VentaDetalleController`/`VentaDetalleService` (`POST /ventas/{id}/detalles`, `DELETE /ventas/detalles/{id}`, `GET autocomplete-productos`), DTO `ProProductoAutocompleteDto` en `03-03` reutilizado; build 0/0, Unit 199/199, Security 53/53, Integration 67/67, Stryker 90.70% (`stryker-0311.json`).
+- **Desviaciones registradas:** `User → 200` en autocomplete (Bearer sin policy, espejo 03-10; no 403); `RowVersion` añadido a `VenVentaDetalleDto` (necesario para DELETE concurrente); el servicio invalida también `producto:{id}` + `producto:version` (stock mutado; bug de caché stale cazado por test).

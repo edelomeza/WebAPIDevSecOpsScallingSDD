@@ -17,12 +17,13 @@ Spec del endpoint aprobada.
 
 ## Pasos
 
-1. Entidad + DbContext.
-2. DTOs Create/Update/Delete.
-3. FluentValidation.
-4. Servicio con cache/eventos.
-5. Controller con auth/rate limit.
-6. Tests unit/integration/security.
+1. Entidad + DbContext (`IsRowVersion()` en auditables; mitigación InMemory `byte[]{1}` en `SaveChanges`).
+2. DTOs Create/Update/Delete (`required`, `RowVersion`, `IReadOnlyList`).
+3. FluentValidation (`>0`, `NotEmpty`, `RuleForEach`).
+4. Servicio con cache-aside + eventos fake si aplica (`NOTE`).
+5. Controller con auth explícita + helper `ValidateAsync`.
+6. Tests unit/integration/security + Stryker ≥80% + build restaurativo.
+7. Conciliar `spec/plan/task.md` + `Memoria.md` (`Borrador con evidencia`; firma solo con revisor indicado + PR).
 
 ## Checklist
 

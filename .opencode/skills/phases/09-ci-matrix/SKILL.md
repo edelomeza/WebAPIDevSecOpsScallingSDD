@@ -19,9 +19,11 @@ Al definir o ajustar `ci-cd.yml` y workflows nightly.
 
 1. Mapear jobs (build-and-test, docker-build, dockle, sonarcloud, database-test, mutation-test, contract-test, semgrep, zap, hardening-report) a eventos (push, PR, nightly, dispatch).
 2. Definir `needs` y `if` por job.
-3. Fijar timeouts reales (Stryker 180min, Pact continue-on-error).
-4. Artifacts en pareja de majors.
-5. Jobs agregadores tolerantes.
+3. Fijar timeouts reales (Stryker nightly 180min detached; Integration serie ~5min; `blame-hang-timeout 10m`).
+4. Pinear actions a SHA inmutable + comentario `# vX` (Dependabot los sigue actualizando; SAST `mutable-tag` bloquea si no).
+5. Semgrep: `semgrep scan --config=auto --config=.semgrep/semgrep.yaml --error` (SIN `--metrics=off`: `scan` lo rechaza, solo vale para `ci` con token).
+6. Reproducir NU1100 pristino en local: `dotnet restore --force --no-cache /p:RestorePackagesPath=<temp-vacia>` (la caché tibia oculta el fallo); mapear IDs exactos + transitivos (`Testcontainers` sin `.*`, `Pipelines.Sockets.Unofficial`, `SSH.NET`, `SharpZipLib`, `BouncyCastle.Cryptography`…).
+7. Jobs agregadores tolerantes + artifacts en pareja de majors.
 
 ## Checklist
 
