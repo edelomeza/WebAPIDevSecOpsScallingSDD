@@ -315,10 +315,10 @@
 - 17 SKILL.md tocados + 2 nuevos (PR #3 mergeado a `main`): el análisis encontró skills genéricas/desactualizadas frente a 12 lecciones probadas.
 - Updates: `testing-mutation` (reescritura: thresholds 80/80/90, configs por slice, catálogo mata-mutantes, detached + build restaurativo); `testing-webappfactory` (headers `X-Test-Role/UserId`, matriz 403/200/401, DELETE-limpieza, serie); `testing-testcontainers` (puertos fijos + daemon); `testing-strategy` (serie, conteos reales 212/72/55); `07-static-analysis` (apunta a quickref); `05-cache-redis` (esquema canónico + stale `03-11`); `03-api-vertical-slice` + `core/vertical-slice` (checklist probado); `03-saga-endpoints` (fake-first permitido); `06-events-saga` (Fase 8→06 + reemplazo fake→real); `06-saga-state-machine` (conflicto nombres `Pendiente` vs `Creado/Registrado`, canónico en `06-04`); `03-auth-endpoints` (realidad opaca + doubles); `core/auth-matrix` (`AdminPolicy` real + `NOTE 04-04`); `traceability` + `spec-first-writing` (Borrador-vs-Aprobado, bitácora 4 capas); `09-ci-matrix` (SHA, semgrep scan, NU1100 pristino); `07-quality-supply-chain` (Stryker real + source mapping).
 - Nuevas: `core/deferred-scope-fakes` (Fake+`NOTE`, bitácora 4 capas, `grep NOTE` al llegar a fase dueña) y `testing/analyzer-quickref` (tabla 14 reglas S6964/CA2227/S3267/CA2007/xUnit1030/CA1305/CA1308/CA1861/xUnit2013/S101/S1135/pragmas/S1541).
-- Verificacion: solo markdown (sin código); pendiente revisión del usuario antes de PR.
+- Verificacion: solo markdown (sin código); revisado y autorizado por el usuario (07-Oct-2026).
 
 ## Cierre PR #3 phase03.1 mergeado a main (2026-10-07)
 - `edelomeza` mergeó 1 commit (`d8a3fb8`) vía PR #3 (`8ab5209`): 03-11 VentaDetalle T1+T2 + 03-12 VentasPedido mínimo + 17 skills + 2 nuevas.
 - `main` local sincronizado (fast-forward a `8ab5209`) + build 0/0 + UnitTest 212/212 en `main`.
-- Specs `03-11` y `03-12` quedan en 🚧 Borrador con evidencia (sin revisor indicado; firma pendiente).
+- Specs `03-11` y `03-12` firmadas a ✅ Aprobado (`@arquitecto-principal`, 07-Oct-2026) en `phase03.2` (`0d7ff7f`, solo local).
 - Nota: `gh` local sin auth (401) — el PR se creó por web; el push usó credential helper de git.
