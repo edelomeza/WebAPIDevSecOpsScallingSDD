@@ -13,11 +13,13 @@ Approval), with the Definition of Done in
 acceptance criteria per command or test, mandatory spec↔code↔test
 traceability, and `Memoria.md` as the living state log.
 
-Current status is honest: catalog CRUD + base auth (login, lockout, login-2FA
-verify) are implemented and green; real JWT issuance, TOTP setup, saga
-runtime, observability, and CI pipelines are specified but pending. See
-`specs/` for the source of truth and `Memoria.md` for the current state and
-decisions.
+Current status is honest: catalog CRUD + search/autocomplete, base auth
+(login, lockout, login-2FA verify, opaque refresh/logout), legacy sync sale
+with details, and the minimal saga path (order → payment → read-only invoice
+→ filtered dashboard) are implemented and green; real JWT issuance, TOTP
+setup, saga runtime (bus/consumers/compensation), observability, and the
+full CI/CD matrix are specified but pending. See `specs/` for the source of
+truth and `Memoria.md` for the current state and decisions.
 
 ## Stack
 
@@ -40,7 +42,8 @@ Tests (xUnit 2.9.3 + coverlet):
 - `SecurityTest` — anonymous auth behavior (reuses `UnitTest` helpers)
 - `DatabaseTest` — migrations and seed on real SQL Server
 - `ContractTest`, `PerformanceTest` (NBomber), `ChaosTest` — placeholders
-- Mutation testing via Stryker.NET (`stryker-0301.json` … `stryker-0307.json`)
+- Mutation testing via Stryker.NET (per-slice configs `stryker-0301.json`
+  through `stryker-0315.json`, gate ≥ 80%)
 
 Solution format and guardrails:
 
@@ -97,9 +100,14 @@ files can be ignored entirely.
 
 Conventions: `api/v{version}/[controller]`, `ApiVersion("1.0")` via URL
 segment, PascalCase JSON (`PropertyNamingPolicy = null`), DTOs +
-FluentValidation, `AdminPolicy` (Admin role) on catalog writes.
+FluentValidation. Auth is explicit per endpoint in one of three valid
+patterns: `AdminPolicy` (Admin role) on catalog and saga endpoints, bare
+`[Authorize]` (Bearer without policy, e.g. legacy sale and logout — a
+`User` gets 200, not 403, by design), or `[AllowAnonymous]` on login /
+refresh. The living endpoint matrix is
+`specs/phase-03-api-catalog/03-17-endpoint-catalog/spec.md`.
 
-Controllers (`Controllers/V1/`, 8):
+Controllers (`Controllers/V1/`, 16):
 
 | Controller | Route | Endpoints |
 |---|---|---|
@@ -111,6 +119,14 @@ Controllers (`Controllers/V1/`, 8):
 | `VenCatEstadoController` | `api/v1/estados-venta` | CRUD |
 | `LoginController` | `api/v1/auth` | `POST login` (anonymous) |
 | `Login2FaController` | `api/v1/auth` | `POST login2fa/verify` (anonymous) |
+| `RefreshController` | `api/v1/auth` | `POST refresh` (anonymous, rotates opaque token) |
+| `LogoutController` | `api/v1/auth` | `POST logout` (Bearer, revokes via `jti ?? hash`) |
+| `VentaController` | `api/v1/ventas` | `POST` (Bearer, 201) + `GET {id}` (auxiliary) |
+| `VentaDetalleController` | `api/v1/ventas/detalles` | `POST ~/ventas/{idVenta}/detalles` + `GET/DELETE {id}` + `GET autocomplete-productos` (Bearer, owner-only 403) |
+| `VentasPedidoController` | `api/v1/ventas/pedido` | `POST` + `GET {id:guid}` (AdminPolicy, saga entry, no stock discount) |
+| `VentasPagoController` | `api/v1/ventas/pago` | `POST` + `GET {id}` + `GET pedido/{pedidoId}` (AdminPolicy, duplicate → 409) |
+| `VentasFacturaController` | `api/v1/ventas/factura` | `GET {id}` read-only (AdminPolicy, folio deferred to phase 06) |
+| `VentasDashboardController` | `api/v1/ventas/dashboard` | `GET` with `desde/hasta/estadoSaga` filters (AdminPolicy) |
 
 Platform endpoints: `/health` (liveness), `/health/ready` (readiness,
 includes Redis), `/ping`, `/scalar` + `/openapi` (Development only),
@@ -132,15 +148,18 @@ dotnet test UnitTest/UnitTest.csproj -c Release --no-build
 dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build
 dotnet test SecurityTest/SecurityTest.csproj -c Release --no-build
 dotnet test DatabaseTest/DatabaseTest.csproj -c Release --no-build
-dotnet stryker --config-file stryker-0307.json
+dotnet stryker -f stryker-0315.json
 ```
 
-Measured state (06-Oct-2026):
+Measured state (08-Oct-2026):
 
 - Build Release 0 errors / 0 warnings
-- Unit 150/150, Integration 47/47, Security 43/43, Database 2/2
-- Stryker 100% on `LoginService` (`stryker-0306.json`) and on
-  `Login2FaService` + `TotpService` (`stryker-0307.json`)
+- Unit 244/244, Integration 85/85, Security 60/60, Database 2/2
+- Stryker ≥ 80% gate on every slice (100% on most services, e.g.
+  `LoginService`, `Login2FaService`, `VentasFacturaService`,
+  `VentasDashboardService`; 82–91% on broader services such as
+  `VentaService`, `VentasPedidoService`, `VentaDetalleService` — residue is
+  relational-only branches outside `UnitTest` scope)
 - Real coverage gate is the mutation score (line coverage threshold
   reference: 45% via `scripts/check_coverage.py`, stub until phase 07)
 
@@ -151,8 +170,20 @@ Rules learned the hard way:
 - Stryker runs take ~15 min per service config; first runs rarely hit 100%.
 - `ignore-mutations Boolean` does **not** filter `||→&&` (Logical) mutants.
 - Tests sharing the InMemory database must delete their data
-  (DELETE with `RowVersion`) to avoid cross-test pollution.
+  (DELETE with `RowVersion`) to avoid cross-test pollution; collections run
+  in series via `IntegrationTest/xunit.runner.json`.
 - No `ConfigureAwait(false)` in `[Fact]` bodies (xUnit1030); helpers only.
+- Reproduce pristine-restore NU1100 failures with an empty packages folder
+  (`dotnet restore --force --no-cache /p:RestorePackagesPath=<empty>`):
+  a warm cache hides source-mapping gaps.
+- `semgrep scan` rejects `--metrics=off` (only `semgrep ci` accepts it);
+  pin actions to immutable SHAs (SAST flags mutable tags).
+- EF InMemory elevates `TransactionIgnoredWarning` to an error under
+  warnings-as-errors: guard explicit transactions with `IsRelational`.
+- Kill `catch` mutants with a `ThrowingContext : AppDbContext` subclass
+  (`ThrowOnSave` flag) instead of widening `UnitTest` scope to MsSql.
+- `NOTE (XX-YY)` for deferred scope, never `TODO`: S1135 plus
+  `TreatWarningsAsErrors` turns `TODO` into a build error.
 
 ## Key decisions
 
@@ -173,20 +204,43 @@ Rules learned the hard way:
 - **Lockout after 5 failures** (`attempts:{user}` counter +
   `lockout:{user}` flag); 1–5 → 401/401, next → 423.
 - Naming uses `2Fa` (not `2fa`) to satisfy Sonar S101.
+- **Opaque refresh/logout** (`NOTE 04-01` → real HS256 JWT): refresh tokens
+  are SHA-256 hex persisted with rotation link (`strReplacedByTokenHash`)
+  and reuse → 401; logout revokes `blacklist:{jti}` from the `jti`/`sub`
+  claim with hash-of-refresh fallback, TTL 120s (`NOTE 04-02`).
+- **Legacy sync sale** (Bearer, owner in body + `NOTE 04-01` → `sub` claim):
+  server-side totals (`decPrecio × piezas`), FK triple-check → 422, any
+  stock/concurrency conflict → 409; details share one explicit transaction
+  and restore stock on delete.
+- **Minimal saga, fake-first** (`NOTEs 06-01…06-04` → MassTransit/bus in
+  phase 06): order creation does **not** discount stock (validated later by
+  the stock consumer), emits `PedidoCreadoEvent` via
+  `FakePedidoEventPublisher`; duplicate non-null `strIdTransaccion` → 409
+  (multiple `NULL`s allowed by the filtered unique index); invoice is
+  GET-only (no atomic `Increment` in `CacheService`, folio `F-{año}-{seq}`
+  deferred); dashboard aggregates per-entity dates with `queue depth 0`
+  (`NOTE 06-01`) and sanitizes `password/secret/token/":"` from cache keys.
 
 ## SDD workflow and roadmap
 
 - New work: write/extend the spec from `specs/_template.md`, implement the
   vertical slice (entity → DTO → validator → controller → service →
-  tests), keep Stryker at 100% for touched services, reconcile the
+  tests), keep Stryker ≥ 80% for touched services plus a restorative
+  `dotnet build` after every run, reconcile the
   spec/plan with real file names and test counts, update `Memoria.md`.
 - One PR = one feature/fix; no secrets, no TODOs without an issue, no dead
-  code, no unused usings.
-- Roadmap: phases 04 (JWT/credentials/hardening/rate-limit), 06 (saga
-  runtime), 07 (quality/supply chain), 08 (observability), 09 (CI/CD, AWS,
-  chaos), 10 (testing strategy) are specified but pending; phases 00, 01,
-  02, 02-5, and 03-00…03-07 are approved and implemented.
+  code, no unused usings. Pre-push gate: `pwsh scripts/critic-guardrails.ps1`
+  (4 blocking diff-scoped checks; 401 parity / complexity / Stryker need test
+  evidence). Manual sub-agents live in `.opencode/agents/` (hybrid: they link
+  `.opencode/skills/`, never copy); CI runs only the lightweight `critic` job.
+- Roadmap: phases 00, 01, 02, and 03-00…03-08 plus 03-10…03-15 are approved
+  and implemented. Still pending: 03-09 (2FA setup), 03-16 (uniform errors),
+  the living 03-17 catalog, and phases 04 (JWT/credentials/hardening/
+  rate-limit), 06 (saga runtime), 07 (quality/supply chain), 08
+  (observability), 09 (CI/CD, AWS, chaos), 10 (testing strategy).
 - Known gaps (not code, just not built yet): `deploy/` has no
-  compose/CloudFormation/Grafana files, `.github/workflows/` is empty,
-  `scripts/check_coverage.py` and `.semgrep` rules are stubs, and the PR
-  checklist lives in `.github/pull_request_template.md`.
+  compose/CloudFormation/Grafana files, `scripts/check_coverage.py` and
+  `.semgrep` custom rules are stubs, and the 8-check PR checklist lives in
+  `.github/pull_request_template.md`. `.github/workflows/ci-pr.yml` runs
+  build → unit/security/integration → semgrep plus the `critic` guardrail
+  (mutation/perf/chaos stay nightly).
