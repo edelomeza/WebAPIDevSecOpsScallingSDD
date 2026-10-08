@@ -38,7 +38,7 @@ Catálogo consolidado y vivo de todos los endpoints de la API. **Depende de**: `
 | GET | /api/v1/ventas/pago/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto | 200/401/403/404 |
 | GET | /api/v1/ventas/pago/pedido/{pedidoId} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto[] | 200/401/403 |
 | GET | /api/v1/ventas/factura/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | VenPedidoFacturaResponseDto | 200/401/403/404 |
-| GET | /api/v1/ventas/dashboard | AdminOnly+AdminPolicy | Admin 200/min | — | DashboardDto | 200/401/403 |
+| GET | /api/v1/ventas/dashboard | AdminOnly+AdminPolicy | Admin 200/min | `desde/hasta/estadoSaga` | DashboardDto | 200/400/401/403 |
 
 ## Tests
 - Revisión contra Pact/contratos en fase 10 (`ContractTest`).

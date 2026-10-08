@@ -356,3 +356,15 @@
 - `main` local sincronizado en `97a6658` + build 0/0 + UnitTest 231/231 en `main`.
 - Spec `03-14` firmada a ✅ Aprobado (@usuario, 08-Oct-2026) en `phase03.4` (firma sin cambios sobre la evidencia; `POST`/folio/consumer → fase 06).
 - Nota: `phase03.3` se conserva por decisión del usuario (no eliminar).
+## Cierre PR #7 phase03.4 mergeado a main (2026-10-08)
+- Merge `ae73198` (PR #7 `phase03.4` → `main`): firma 03-14 a Aprobado (`438e1ac`) + cierre PR #6 en Memoria.
+- `main` local sincronizado en `ae73198` + build 0/0 + UnitTest 231/231 en `main`.
+- Spec `03-14` firmada y publicada en `main`; slice 03-14 cerrado por completo (queda `POST`/folio/consumer → fase 06).
+## T1 — 03-15 VentasDashboard con filtros ejecutado (2026-10-08)
+- Slice con filtros (decisión del usuario en plan): `Dtos/DashboardDtos.cs` (`DashboardFilterDto {Desde, Hasta, EstadoSaga}` + `DashboardDto {TotalPedidos/Pagos/Facturas, MontoTotalPedidos/Pagos/Facturas, PorEstadoSaga[{Estado, Total}], ProfundidadCola}` sin secretos/RFC/folios), `Validators/DashboardValidators.cs` (`Hasta>=Desde` + `EstadoSaga Max50`), `Services/DashboardService.cs` (`IVentasDashboardService.GetAsync`, `AsNoTracking`, `Trim`+vacío→`null`, `OrderBy(Estado)`, cola `0` + `NOTE 06-01`, caché `cache:dashboard:*` TTL 60s sin `VersionKey` + sanitiza `password/secret/token/":"`), `Controllers/V1/VentasDashboardController.cs` (`GET api/v1/ventas/dashboard`, `AdminPolicy`, `[FromQuery]` sueltos, `400` vía `ValidationProblem`), DI en `Program.cs`, `stryker-0315.json`.
+- Rango sobre fecha propia de cada entidad (`dteFechaPedido/Pago/Emision`); estado solo filtra pedidos; fila `03-17` actualizada a `200/400/401/403` con query params.
+- Tests: `UnitTest/VentasDashboard` (13: servicio 8 + validador 5, borde inclusivo en 3 tablas, llaves exactas `Creado`/`_-_-_-x`, ausencia sensibles), `IntegrationTest/Saga/VentasDashboardTests.cs` (3: flujo + filtros/400 + 403 `User`; asserts `>=1` por store InMemory compartido, limpieza cliente/producto vía API), `SecurityTest/Saga/VentasDashboardSecurityTests.cs` (1×401).
+- Stryker 72% primer run (13: 8 `Equality` fecha pagos/facturas, 4 `String "_"→""`, 1 `IsNullOrWhiteSpace→!=`) → 100.00% tras borde en pagos/facturas + asserts exactos de llave (47 killed, 1 compile-error `Count→Sum`, 28 ignored `Boolean`); `dotnet build` restaurativo tras cada run.
+- Lecciones: Docker Desktop detenido otra vez (misma regla 03-02/03-11/03-12/03-13); `dotnet stryker` v5 usa `-f|--config-file` (`--config` es `Unrecognized option`); S3041/S3241 vigentes en tests (`InsertFactura` → `void` al no usar el id).
+- Verificacion: build Release 0/0; UnitTest 244/244; SecurityTest 60/60; IntegrationTest 85/85; DatabaseTest 2/2; `dotnet build` restaurativo tras Stryker + re-verificación Unit/Security.
+- Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; bus/compensación → fase 06, métricas → `08-01`).

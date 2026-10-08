@@ -1,5 +1,9 @@
-# 03-15 — Ventas Dashboard
+# 03-15 — Ventas Dashboard (ejecutado T1 con filtros 2026-10-08)
 
-## T1 — Dashboard saga
-- **Crear**: `VentasDashboardController`, `DashboardService`, `DashboardDto`.
-- **Verificar**: GET dashboard responde; sin datos sensibles.
+## T1 — Dashboard saga con filtros (ejecutado 2026-10-08, alcance cerrado con usuario)
+- **Creados**: `Dtos/DashboardDtos.cs` (`DashboardFilterDto {Desde, Hasta, EstadoSaga}` + `DashboardDto {TotalPedidos/Pagos/Facturas, MontoTotalPedidos/Pagos/Facturas, PorEstadoSaga, ProfundidadCola}` + `EstadoConteoDto`, sin secretos/RFC/folios), `Validators/DashboardValidators.cs` (`DashboardFilterValidator`: rango `Hasta>=Desde` + `EstadoSaga Max50`), `Services/DashboardService.cs` (`IVentasDashboardService.GetAsync`, solo lectura `AsNoTracking`, filtros sueltos, `Trim` + vacío→`null`, `OrderBy(Estado)`, cola `0` + `NOTE 06-01`, caché `cache:dashboard:*` TTL 60s sin `VersionKey` + sanitiza `password/secret/token/":"`), `Controllers/V1/VentasDashboardController.cs` (`GET api/v1/ventas/dashboard`, `[Authorize(Policy="AdminPolicy")]`, `[FromQuery] desde/hasta/estadoSaga`, `400` vía `ValidationProblem`), DI en `Program.cs`, `stryker-0315.json`.
+- **Verificado**: GET agregado + filtros fecha/estado + `400` rango invertido + `User` → 403 + 401 anónimo + sin sensibles en JSON; build 0/0, Unit 244/244, Security 60/60, Integration 85/85, Database 2/2; Stryker 100.00% (47 killed, 1 compile-error `Count→Sum`, 28 ignored `Boolean`; gate ≥80%).
+- **Guardarraíles**: llaves interpoladas `$"..."`; `Ticks` invariante en llave (sin `:` ambiguo de formato `o`); `ConfigureAwait(false)` fuera de `[Fact]`; `Assert.Single` (no `Equal` de conteos); limpieza cliente/producto vía API en Integration (facturas/pedidos quedan en store compartido: asserts `>=1`, no exactos).
+- **Iteración Stryker**: primer run 72% (13: 8 `Equality` en filtros fecha de pagos/facturas sin borde + 4 `String "_"→""` sin assert exacto de llave + 1 `IsNullOrWhiteSpace→!=` sin assert de llave con estado) → 100% tras borde inclusivo en pagos/facturas + asserts exactos `cache:dashboard:null:null:Creado` y `:_-_-_-x`.
+- **Pendiente → fase 06/08/04**: bus/SQS + profundidad real (`06-01`), consumers + compensación (`06-02`), estados (`06-04`), métricas OTel/Prometheus (`08-01`), rate-limit (`04-04`), middleware errores (`03-16`).
+- **Cierre**: conciliado con archivos reales; fila `03-17` actualizada a `200/400/401/403`; `Memoria.md` actualizado.
