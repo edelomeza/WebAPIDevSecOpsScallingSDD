@@ -37,8 +37,8 @@ Endpoint de consulta/procesamiento de pago de la saga. **Depende de**: `03-12`, 
 - `UpdateDto/DeleteDto` diferidos (sin rutas en catálogo).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia
-- **Revisores:** —
-- **Fecha:** —
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
+- **Fecha:** 08-Oct-2026
 - **Detalle:** T1 mínimo ejecutado: `VentasPagoController` (`POST/GET {id:int}/GET pedido/{pedidoId:guid} api/v1/ventas/pago`, `AdminPolicy`), `VentasPagoService` + `PagoDtos` + `PagoValidators`, DI en `Program.cs`, `stryker-0313.json`; build 0/0, Unit 226/226, Security 58/58, Integration 79/79, Database 2/2, Stryker 95.45% (`stryker-0313.json`).
 - **Desviaciones registradas:** sin `PagoConsumer`/eventos/publisher (todo diferido a fase 06 por decisión del usuario; `task.md` pedía `PagoConsumer`); estado `"Procesado"` temporal (`NOTE 06-04`); sin rate-limit (`NOTE 04-04`); `403` verificado con rol `User`; nombre real `PagoResponseDto` (spec decía `VenPedidoPagoResponseDto`); `GET pedido/{pedidoId}` añadido (task pedía GET por pedidoId, spec solo GET por id).
