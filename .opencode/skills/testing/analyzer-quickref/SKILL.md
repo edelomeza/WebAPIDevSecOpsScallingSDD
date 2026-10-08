@@ -1,6 +1,6 @@
 ---
 name: analyzer-quickref
-description: Tabla regla→síntoma→fix de analizadores Sonar/xUnit que rompieron builds en 03-01…03-14
+description: Tabla regla→síntoma→fix de analizadores Sonar/xUnit que rompieron builds en 03-01…03-15
 ---
 
 ## Propósito
@@ -25,6 +25,7 @@ Lookup en 1 línea por regla durante cada slice (el porqué vive en `07-static-a
 | CA2000 | `WebApplicationFactory` en test | Pragma `disable` con comentario dispose-wrapper |
 | AV0029 / AV0030 | `AddOpenApi/WithDocumentPerVersion` inexistentes v10.2.1 | `NoWarn` en csproj API |
 | S1541 / S3776 | Complejidad >10/15 | Extraer método; controller delega en servicio |
+| S3241 | Helper que retorna valor que ningún caller usa | Cambiar retorno a `void` |
 
 ## Límites/trampas
 
@@ -32,4 +33,4 @@ No suprimir reglas sin evidencia; no crear alias que oculten warnings.
 
 ## Referencias
 
-`07-static-analysis`, `Directory.Build.props`, `Memoria.md` (`03-01`…`03-14`).
+`07-static-analysis`, `Directory.Build.props`, `Memoria.md` (`03-01`…`03-15`).

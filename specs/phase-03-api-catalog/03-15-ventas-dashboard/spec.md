@@ -26,7 +26,7 @@ Dashboard agregado del estado de la saga de ventas. **Depende de**: `03-12`, `03
 - Sin escritura; métricas detalladas en fase 08.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia T1 (pendiente firma; bus/DLQ/compensación → fase 06, métricas OTel → `08-01`)
-- **Revisores:** —
-- **Fecha:** —
-- **Detalle:** T1 ejecutado 2026-10-08: `VentasDashboardController`, `DashboardService` (`IVentasDashboardService.GetAsync`), `DashboardDtos`, `DashboardFilterValidator`, DI en `Program.cs`, `stryker-0315.json`; build 0/0, Unit 244/244, Security 60/60, Integration 85/85, Database 2/2; Stryker 100.00% (47 killed, 1 compile-error `Count→Sum` no computable, 28 ignored `Boolean`).
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
+- **Fecha:** 08-Oct-2026
+- **Detalle:** T1 con filtros ejecutado y firmado sin cambios sobre la evidencia: `VentasDashboardController` (`GET api/v1/ventas/dashboard`, `AdminPolicy`), `DashboardService` (`IVentasDashboardService.GetAsync`, caché `cache:dashboard:*` TTL 60s sin `VersionKey`) + `DashboardDtos` + `DashboardFilterValidator`, DI en `Program.cs`, `stryker-0315.json`; build 0/0, Unit 244/244, Security 60/60, Integration 85/85, Database 2/2, Stryker 100.00% (`stryker-0315.json`, 47 killed).
