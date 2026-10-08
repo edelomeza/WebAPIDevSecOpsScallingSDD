@@ -330,3 +330,7 @@
 - Lecciones: CA2007 rechaza `new` inline en `await using` dentro de `[Fact]` (extraer helper `CreateThrowingContext`, complementa xUnit1030); `node -e` para parsear `mutation-report.json` cuando PowerShell enreda la navegación; Docker Desktop estaba detenido otra vez (misma regla 03-02/03-11/03-12).
 - Verificacion: build Release 0/0; UnitTest 226/226; SecurityTest 58/58; IntegrationTest 79/79; DatabaseTest 2/2; `dotnet build` restaurativo tras cada Stryker.
 - Estado spec: ✅ Aprobado (@usuario, 08-Oct-2026, firma sin cambios sobre la evidencia; trabajo futuro → `06-01/06-02/06-03/06-04`, `04-04`, `03-16` vía `NOTE`s; fila `03-17` actualizada con nombre real `PagoResponseDto`).
+## Cierre PR #4 phase03.2 mergeado a main (2026-10-08)
+- Merge `96dc6e7` (PR #4 `phase03.2` → `main`): 03-13 VentasPago mínimo (`7e348bb`) + spec/plan/task y fila `03-17`.
+- `main` local sigue en `8ab5209` (sin sincronizar); `origin/main` ya va en `96dc6e7`.
+- Nota: firma 03-13 a Aprobado (`48ae579`) pusheada a `origin/phase03.2` tras el merge — aún no está en `main`; entrará con el próximo PR.
