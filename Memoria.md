@@ -334,3 +334,7 @@
 - Merge `96dc6e7` (PR #4 `phase03.2` → `main`): 03-13 VentasPago mínimo (`7e348bb`) + spec/plan/task y fila `03-17`.
 - `main` local sigue en `8ab5209` (sin sincronizar); `origin/main` ya va en `96dc6e7`.
 - Nota: firma 03-13 a Aprobado (`48ae579`) pusheada a `origin/phase03.2` tras el merge — aún no está en `main`; entrará con el próximo PR.
+## Cierre PR #5 phase03.2 mergeado a main (2026-10-08)
+- Merge `78113c0` (PR #5 `phase03.2` → `main`): firma 03-13 a Aprobado (`48ae579`) + cierre PR #4 en Memoria (`6bc1241`).
+- `main` local sincronizado en `78113c0` + build 0/0 + UnitTest 226/226 en `main`.
+- Spec `03-13` firmada y publicada en `main`; slice 03-13 cerrado por completo.
