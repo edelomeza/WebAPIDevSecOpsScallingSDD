@@ -330,6 +330,14 @@
 - Lecciones: CA2007 rechaza `new` inline en `await using` dentro de `[Fact]` (extraer helper `CreateThrowingContext`, complementa xUnit1030); `node -e` para parsear `mutation-report.json` cuando PowerShell enreda la navegación; Docker Desktop estaba detenido otra vez (misma regla 03-02/03-11/03-12).
 - Verificacion: build Release 0/0; UnitTest 226/226; SecurityTest 58/58; IntegrationTest 79/79; DatabaseTest 2/2; `dotnet build` restaurativo tras cada Stryker.
 - Estado spec: ✅ Aprobado (@usuario, 08-Oct-2026, firma sin cambios sobre la evidencia; trabajo futuro → `06-01/06-02/06-03/06-04`, `04-04`, `03-16` vía `NOTE`s; fila `03-17` actualizada con nombre real `PagoResponseDto`).
+## T1 — 03-14 VentasFactura mínimo ejecutado (2026-10-08)
+- Slice de solo lectura sin POST/folio/consumer (decisión del usuario en plan): `Dtos/FacturaDtos.cs` (`VenPedidoFacturaResponseDto`, nombre real según catálogo `03-17`), `Services/VentasFacturaService.cs` (`IVentasFacturaService.GetByIdAsync`, caché `cache:factura:{id}` TTL 60s, `NOTE`s 06-02/06-04/04-04), `Controllers/V1/VentasFacturaController.cs` (`GET {id:int} api/v1/ventas/factura`, `AdminPolicy`, 200/404 sin `try/catch` de dominio), DI en `Program.cs`, `stryker-0314.json`.
+- `VenPedidoFactura` ya existía (fase 02); motivo técnico del diferimiento: `CacheService` solo expone `Get/Set/Remove` sin `Increment` atómico y TTL máx 120s → folio `F-{año}-{seq}` a fase 06.
+- Tests: `UnitTest/VentasFactura` (5: nulos, miss-sin-caché, persistencia+caché/llave/TTL, stale-caché, mapeo RFC/fecha), `IntegrationTest/Saga/VentasFacturaTests.cs` (3: flujo 200 con inserción vía `AppDbContext` scoped + 404 + 403 `User`; limpieza cliente/producto vía API), `SecurityTest/Saga/VentasFacturaSecurityTests.cs` (1×401).
+- Stryker 100.00% al primer run (11 killed, 6 ignored por `ignore-mutations Boolean` + block-removal; servicio de solo lectura sin ramas de escritura) — gate ≥80% cumplido con margen.
+- Lecciones: servicio de solo lectura no necesita `VersionKey` ni `InvalidateAsync` (menos mutantes, 100% al primer intento); inserción en Integration vía `factory.Services.CreateScope()` + `GetRequiredService<AppDbContext>()` comparte el store InMemory (precedente 03-07 para 2FA); fila `03-17` ya coincidía (sin cambios).
+- Verificacion: build Release 0/0; UnitTest 231/231; SecurityTest 59/59; IntegrationTest 82/82; DatabaseTest 2/2; `dotnet build` restaurativo tras Stryker + re-verificación Unit/Security.
+- Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; `POST`/folio/consumer → fase 06).
 ## Cierre PR #4 phase03.2 mergeado a main (2026-10-08)
 - Merge `96dc6e7` (PR #4 `phase03.2` → `main`): 03-13 VentasPago mínimo (`7e348bb`) + spec/plan/task y fila `03-17`.
 - `main` local sigue en `8ab5209` (sin sincronizar); `origin/main` ya va en `96dc6e7`.
@@ -338,3 +346,8 @@
 - Merge `78113c0` (PR #5 `phase03.2` → `main`): firma 03-13 a Aprobado (`48ae579`) + cierre PR #4 en Memoria (`6bc1241`).
 - `main` local sincronizado en `78113c0` + build 0/0 + UnitTest 226/226 en `main`.
 - Spec `03-13` firmada y publicada en `main`; slice 03-13 cerrado por completo.
+
+## Skills actualizadas con experiencia 03-13/03-14 (2026-10-08)
+- 11 SKILL.md tocados, 0 nuevos (todo encajaba en existentes; `03-legacy-sales` y `testing-testcontainers` sin gap), directo en rama por decisión del usuario.
+- Updates: `analyzer-quickref` (CA2007: `new` inline en `await using` en `[Fact]` → helper; tope …03-14); `testing-mutation` (catálogo `ThrowingContext` 03-13, regla GET-only sin `VersionKey` 03-14, precedentes + refs 0313/0314); `testing-webappfactory` (seeding vía `AppDbContext` scoped sin `POST`, `Guid` por test; eliminado `## Límites/trampas` duplicado); `testing-strategy` (conteos reales 231/82/59/2 @08-Oct + reglas scoped/`Guid`); `powershell-quirks` (script `.js` + `node` para `mutation-report.json`); `03-api-vertical-slice` (slice acotado con `NOTE`s, `ThrowingContext`, refs 03-07/03-13/03-14); `03-saga-endpoints` (`Trim`/pre-chequeo→409, `NULL` múltiple, folio diferido + matriz (a)/(b)/(c), entidades pre-existentes); `05-cache-redis` (sin `Increment` + TTL máx, excepción GET-only); `deferred-scope-fakes` (alternativa GET-only sin fake, rama "catálogo ya correcto"); `06-events-saga` (deuda POST/folio/consumer 03-14); `02-migrations-seed` + `02-domain-data` (nota de únicos filtrados en ambas).
+- Verificacion: solo markdown (`git status`: 12 SKILL.md + entrada Memoria; resto del diff es trabajo 03-14 pendiente de commit).
