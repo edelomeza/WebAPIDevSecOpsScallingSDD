@@ -8,35 +8,44 @@ $ErrorActionPreference = 'Stop'
 $failures = @()
 $warnings = @()
 
-function Get-ChangedFiles {
-    $files = @()
+# Estilo powershell-quirks: el stderr nativo (p. ej. "From https://..." de
+# git fetch) se vuelve terminating con $ErrorActionPreference='Stop' aunque
+# haya 2>$null. Todo git pasa por aqui: 2>&1 + filtrado de ErrorRecord.
+function Invoke-Git {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     try {
-        git fetch origin main --depth=100 2>$null
-        $out = git diff --name-only 'origin/main...HEAD' 2>$null
-        if ($out) { $files = @($out | Where-Object { $_ -ne '' }) }
-    } catch { }
-    if ($files.Count -eq 0) {
-        $local = @()
-        $unstaged = git diff --name-only HEAD 2>$null
-        if ($unstaged) { $local += @($unstaged | Where-Object { $_ -ne '' }) }
-        $untracked = git ls-files --others --exclude-standard 2>$null
-        if ($untracked) { $local += @($untracked | Where-Object { $_ -ne '' }) }
-        $files = @($local | Select-Object -Unique)
+        return @(git @args 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+    } finally {
+        $ErrorActionPreference = $prev
     }
-    return $files
+}
+
+function Get-ChangedFiles {
+    # Union de ambos ambitos: el diff commiteado vs origin/main (caso CI)
+    # mas los cambios locales sin commitear (caso pre-push). Sin la union,
+    # un scratch untracked pasaba desapercibido cuando el diff era no vacio.
+    $all = @()
+    Invoke-Git fetch origin main --depth=100 | Out-Null
+    $out = Invoke-Git diff --name-only 'origin/main...HEAD'
+    if ($out) { $all += @($out | Where-Object { $_ -ne '' }) }
+    $unstaged = Invoke-Git diff --name-only HEAD
+    if ($unstaged) { $all += @($unstaged | Where-Object { $_ -ne '' }) }
+    $untracked = Invoke-Git ls-files --others --exclude-standard
+    if ($untracked) { $all += @($untracked | Where-Object { $_ -ne '' }) }
+    return @($all | Select-Object -Unique)
 }
 
 function Get-AddedLines($file) {
     $tracked = $true
-    try { git ls-files --error-unmatch -- $file 2>$null | Out-Null } catch { $tracked = $false }
+    $chk = Invoke-Git ls-files --error-unmatch -- $file
+    if (-not $chk) { $tracked = $false }
     if (-not $tracked) {
         return @(Get-Content -LiteralPath $file)
     }
-    try {
-        $diff = git diff -U0 'origin/main...HEAD' -- $file 2>$null
-        if (-not $diff) { $diff = git diff -U0 HEAD -- $file 2>$null }
-        return @($diff | Where-Object { $_ -match '^\+' -and $_ -notmatch '^\+\+\+' })
-    } catch { return @() }
+    $diff = Invoke-Git diff -U0 'origin/main...HEAD' -- $file
+    if (-not $diff) { $diff = Invoke-Git diff -U0 HEAD -- $file }
+    return @($diff | Where-Object { $_ -match '^\+' -and $_ -notmatch '^\+\+\+' })
 }
 
 $changed = Get-ChangedFiles
@@ -139,5 +148,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'critic: PASS (401 identicos / S1541 / Stryker >=80% se verifican con tests, ver PR template)'
+Write-Host ("critic: PASS ({0} files scanned; 401 identicos / S1541 / Stryker >=80% se verifican con tests, ver PR template)" -f $changed.Count)
 exit 0
