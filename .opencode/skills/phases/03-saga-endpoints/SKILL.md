@@ -21,7 +21,7 @@ Al crear `03-12`, `03-13`, `03-14`, `03-15`.
 1. `VenPedido` con estado temporal (`"Creado"` + `NOTE 06-04`) y publicación `PedidoCreadoEvent` vía `IPedidoEventPublisher` fake (`NOTE 06-01`); el pedido NO descuenta stock (lo valida el consumer en `06-02`).
 2. `VenPedidoPago` con `strIdTransaccion` único filtrado (`IS NOT NULL` admite múltiples `NULL`, probado `NullTransaccionAllowsDuplicates`); opcionales con `Trim` + vacío→`null`; duplicado no-nulo → pre-chequeo + `DbUpdateException→ConcurrencyConflictException→409` (InMemory NO impone índices únicos; el `catch` es la red para SQL real).
 3. `VenPedidoFactura`: folio `F-{año}-{seq}` desde Redis SOLO si hay `Increment` atómico (hoy `CacheService` solo expone `Get/Set/Remove` + TTL máx 120s → diferir a fase 06, probado `03-14`). Matriz decidida: (a) GET-only mínimo (`GetByIdAsync`, sin `VersionKey`/`InvalidateAsync`, desbloquea `03-15`); (b) GET+POST con folio fake `Get+Set` + `UNIQUE` como guardián→409; (c) extender `ICacheService.IncrementAsync` (rompe interfaz compartida).
-4. Dashboard con métricas de saga y depth de cola.
+4. Dashboard con métricas de saga y depth de cola (probado `03-15`): agregados + filtros sueltos `desde/hasta/estadoSaga`; cola fake `0` + `NOTE 06-01`; caché `cache:dashboard:*` TTL 60s sin `VersionKey`; sanitizar `password/secret/token/":"` en la llave; fechas como `Ticks` invariante.
 5. Proteger con `AdminPolicy` (`NOTE 04-04` rate-limit).
 
 ## Pasos
@@ -29,7 +29,7 @@ Al crear `03-12`, `03-13`, `03-14`, `03-15`.
 1. `VenPedido` con estados y publicación `PedidoCreadoEvent`.
 2. `VenPedidoPago` con `strIdTransaccion` único filtrado (`IS NOT NULL` admite múltiples `NULL`, probado `NullTransaccionAllowsDuplicates`); opcionales con `Trim` + vacío→`null`; duplicado no-nulo → pre-chequeo + `DbUpdateException→ConcurrencyConflictException→409` (InMemory NO impone índices únicos; el `catch` es la red para SQL real).
 3. `VenPedidoFactura`: folio `F-{año}-{seq}` desde Redis SOLO si hay `Increment` atómico (hoy `CacheService` solo expone `Get/Set/Remove` + TTL máx 120s → diferir a fase 06, probado `03-14`). Matriz decidida: (a) GET-only mínimo (`GetByIdAsync`, sin `VersionKey`/`InvalidateAsync`, desbloquea `03-15`); (b) GET+POST con folio fake `Get+Set` + `UNIQUE` como guardián→409; (c) extender `ICacheService.IncrementAsync` (rompe interfaz compartida).
-4. Dashboard con métricas de saga y depth de cola.
+4. Dashboard con métricas de saga y depth de cola (probado `03-15`): agregados + filtros sueltos `desde/hasta/estadoSaga`; cola fake `0` + `NOTE 06-01`; caché `cache:dashboard:*` TTL 60s sin `VersionKey`; sanitizar `password/secret/token/":"` en la llave; fechas como `Ticks` invariante.
 5. Proteger con `AdminOnly`+`AdminPolicy`.
 
 ## Checklist

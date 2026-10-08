@@ -368,3 +368,8 @@
 - Lecciones: Docker Desktop detenido otra vez (misma regla 03-02/03-11/03-12/03-13); `dotnet stryker` v5 usa `-f|--config-file` (`--config` es `Unrecognized option`); S3041/S3241 vigentes en tests (`InsertFactura` → `void` al no usar el id).
 - Verificacion: build Release 0/0; UnitTest 244/244; SecurityTest 60/60; IntegrationTest 85/85; DatabaseTest 2/2; `dotnet build` restaurativo tras Stryker + re-verificación Unit/Security.
 - Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; bus/compensación → fase 06, métricas → `08-01`).
+## Cierre PR #8 phase03.5 mergeado a main (2026-10-08)
+- Merge `5ccf73c` (PR #8 `phase03.5` → `main`): 03-15 VentasDashboard con filtros (`aa64fa5`).
+- `main` local sincronizado en `5ccf73c` + build 0/0 + UnitTest 244/244 en `main`.
+- Spec `03-15` firmada a ✅ Aprobado (@usuario, 08-Oct-2026) en `phase03.6` (firma sin cambios sobre la evidencia; bus/compensación → fase 06, métricas → `08-01`).
+- Nota: `phase03.5` se conserva por decisión del usuario (no eliminar).
