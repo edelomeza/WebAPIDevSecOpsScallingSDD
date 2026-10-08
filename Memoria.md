@@ -373,3 +373,8 @@
 - `main` local sincronizado en `5ccf73c` + build 0/0 + UnitTest 244/244 en `main`.
 - Spec `03-15` firmada a ✅ Aprobado (@usuario, 08-Oct-2026) en `phase03.6` (firma sin cambios sobre la evidencia; bus/compensación → fase 06, métricas → `08-01`).
 - Nota: `phase03.5` se conserva por decisión del usuario (no eliminar).
+## Cierre PR #9 phase03.6 mergeado a main (2026-10-08)
+- Merge `3b89e40` (PR #9 `phase03.6` → `main`): firma 03-15 a Aprobado (`0743789`) + cierre PR #8 en Memoria + skills 03-15.
+- `main` local sincronizado en `3b89e40` + build 0/0 + UnitTest 244/244 en `main`.
+- Spec `03-15` firmada y publicada en `main`; slice 03-15 cerrado por completo (queda bus/compensación → fase 06, métricas → `08-01`).
+- Nota: `phase03.6` se conserva por decisión del usuario (no eliminar).
