@@ -21,6 +21,7 @@ Fase 2.
 2. Rollback a "0" debe dejar `__EFMigrationsHistory` vacío.
 3. Implementar seed idempotente con `IDENTITY_INSERT`.
 4. Exponer `/provider-states` para Pact.
+5. Entidades saga (`VenPedidoPago/Factura`) pre-existen desde fase 02: prohibido recrearlas en slices (seed `F-SEED-1`); índice único filtrado `IS NOT NULL` admite múltiples `NULL` (test `NullTransaccionAllowsDuplicates`); InMemory NO impone índices únicos → el servicio exige pre-chequeo + `DbUpdateException→409` como red para SQL real.
 
 ## Checklist
 

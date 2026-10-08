@@ -1,6 +1,6 @@
 ---
 name: analyzer-quickref
-description: Tabla regla→síntoma→fix de analizadores Sonar/xUnit que rompieron builds en 03-01…03-12
+description: Tabla regla→síntoma→fix de analizadores Sonar/xUnit que rompieron builds en 03-01…03-14
 ---
 
 ## Propósito
@@ -14,7 +14,7 @@ Lookup en 1 línea por regla durante cada slice (el porqué vive en `07-static-a
 | S6964 | DTO input con `int/decimal` no-nullable sin `required` (under-posting) | `required` en valores de DTOs de input |
 | CA2227 + CA1002 | Colección mutable expuesta en DTO | `IReadOnlyList<T>` con setter |
 | S3267 | Bucle que solo valida (`ContainsKey`+`throw`) | Fusionar validación+cómputo en un `foreach` con `TryGetValue` |
-| CA2007 / xUnit1030 | `ConfigureAwait(false)` | Solo en helpers/servicios; PROHIBIDO en cuerpos `[Fact]` |
+| CA2007 / xUnit1030 | `ConfigureAwait(false)`; `new` inline en `await using` dentro de `[Fact]` | Solo en helpers/servicios; PROHIBIDO en cuerpos `[Fact]`; `await using` con `new` inline → extraer helper `CreateThrowingContext` |
 | CA1305 | `int.ToString()` / fechas en llaves | Interpolar `$"{id}"`, fechas `"o"` |
 | CA1308 | `ToLowerInvariant` | Pasar casing explícito / comparación ordinal |
 | CA1861 | `new[]{...}` en asserts | `Assert.Single` + índice |
@@ -32,4 +32,4 @@ No suprimir reglas sin evidencia; no crear alias que oculten warnings.
 
 ## Referencias
 
-`07-static-analysis`, `Directory.Build.props`, `Memoria.md` (`03-01`…`03-12`).
+`07-static-analysis`, `Directory.Build.props`, `Memoria.md` (`03-01`…`03-14`).

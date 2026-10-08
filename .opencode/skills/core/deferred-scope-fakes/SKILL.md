@@ -5,7 +5,7 @@ description: Alcance fake-first con NOTEs trazables para diferir bus, JWT y rate
 
 ## Propósito
 
-Avanzar slices (`03-06`…`03-12` probado) sin esperar fases pesadas (bus MassTransit, JWT HS256, rate-limit), dejando fakes reemplazables y pendientes trazables.
+Avanzar slices (`03-06`…`03-14` probado) sin esperar fases pesadas (bus MassTransit, JWT HS256, rate-limit), dejando fakes reemplazables y pendientes trazables.
 
 ## Cuándo usarla
 
@@ -22,6 +22,7 @@ Acuerdo de alcance mínimo con el usuario + spec dueña del reemplazo identifica
 3. Registrar en las 4 capas: `NOTE` en código + `Límites`/`Desviaciones` en `spec.md` + `Pendiente → XX-YY` en `task.md` + entrada en `Memoria.md`.
 4. Tests que fijan el contrato del fake (publica 1 vez / no publica en fallo; semilla dummy observable vía `Recording*` doubles) para que la fase dueña los rompa a propósito al reemplazar.
 5. Al llegar a la fase dueña: `grep NOTE (XX-YY)`, swap de implementación, re-correr Stryker + build restaurativo del slice tocado.
+6. Alternativa probada `03-14` cuando ni el fake aporta: slice GET-only sin fake ni `POST` (solo `GetByIdAsync`, sin `VersionKey`/`InvalidateAsync`, `NOTE`s `06-02/06-04/04-04`); si el catálogo `03-17` ya coincide, no tocarlo (rama "catálogo ya correcto").
 
 ## Checklist
 
@@ -36,8 +37,8 @@ Slice cierra en `🚧 Borrador con evidencia` en su alcance; nada queda pendient
 
 - No fakear lógica de negocio del slice (solo infraestructura futura: bus, hash, JWT, rate-limit, TOTP real).
 - Secretos/passwords jamás en llaves/logs/DTOs ni siquiera en fakes.
-- Precedentes: `FakeSegUsuarioPasswordHasher`+`NOTE (04-02)`, token opaco+`NOTE (04-01)`, `FakeTotpService`+`NOTE (03-09)`, `FakePedidoEventPublisher`+`NOTE (06-01)`.
+- Precedentes: `FakeSegUsuarioPasswordHasher`+`NOTE (04-02)`, token opaco+`NOTE (04-01)`, `FakeTotpService`+`NOTE (03-09)`, `FakePedidoEventPublisher`+`NOTE (06-01)`, GET-only `03-14` sin fake (`NOTE 06-02/06-04`) con matriz (a) GET-only / (b) POST fake+`UNIQUE`→409 / (c) `IncrementAsync` (rompe interfaz).
 
 ## Referencias
 
-`03-05`, `03-06`, `03-07`, `03-12`, `Memoria.md`, `00-04-lessons-learned/spec.md`.
+`03-05`, `03-06`, `03-07`, `03-12`, `03-13`, `03-14`, `Memoria.md`, `00-04-lessons-learned/spec.md`.

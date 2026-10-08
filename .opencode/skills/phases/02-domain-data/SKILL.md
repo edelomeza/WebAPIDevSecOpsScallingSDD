@@ -14,6 +14,7 @@ Fase 2.
 ## Pasos
 
 Entidades con naming (`Ven*`, prefijos), DbContext, RowVersion, migraciones, seed.
+`VenPedidoPago/Factura` pre-existen desde fase 02 (no recrear; seed `F-SEED-1`); único filtrado `IS NOT NULL` admite `NULL` múltiples + InMemory no lo impone → pre-chequeo + `DbUpdateException→409` en servicio.
 
 ## Checklist
 
