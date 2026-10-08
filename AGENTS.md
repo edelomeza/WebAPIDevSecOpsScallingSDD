@@ -141,6 +141,17 @@ Las 13 reglas constitucionales derivadas de fallos históricos y optimizaciones 
 
 - **Fuente canónica obligatoria**: `specs/phase-00-constitution/00-04-lessons-learned/spec.md`.
 
+## 11. Sub-agentes (híbrido agentes → skills)
+
+- `slice-scaffolder`: Fase A (esqueleto compilable vertical-slice intra-PR,
+  con test que aserta cada diferido); nunca se commitea sin su Fase B.
+- `security-reviewer`: gate pre-push (critica sin editar, sin Stryker).
+- Invocación manual en dev (`@slice-scaffolder`, `@security-reviewer`); en CI
+  solo corre el job `critic` ligero (`scripts/critic-guardrails.ps1`).
+- Fuente de reglas: `.opencode/skills/` (los agentes solo enlazan SKILL.md,
+  nunca copian). Identidad y convención: `.opencode/agents/README.md`.
+- `traceability-clerk` queda diferido a Fase 2.
+
 
 ---
 
