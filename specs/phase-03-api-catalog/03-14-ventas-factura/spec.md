@@ -33,8 +33,8 @@ Endpoint de consulta de factura de la saga. **Depende de**: `03-13`, `06-01`, `0
 - `UpdateDto/DeleteDto` diferidos (sin rutas en catálogo).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
-- **Revisores:** —
-- **Fecha:** —
-- **Detalle:** pendiente de ejecución.
-- **Desviaciones registradas:** sin `POST`/`CreateDto`/validador/folio Redis/`FacturaConsumer` (todo diferido a fase 06 por decisión del usuario en plan; `task.md` original pedía `VentasFacturaService` + `FacturaConsumer` + folio consecutivo); solo lectura `GET {id:int}` como exige el catálogo `03-17`.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
+- **Fecha:** 08-Oct-2026
+- **Detalle:** T1 mínimo ejecutado y firmado sin cambios sobre la evidencia: `VentasFacturaController` (`GET {id:int} api/v1/ventas/factura`, `AdminPolicy`), `VentasFacturaService` (`GetByIdAsync`, caché `cache:factura:{id}` TTL 60s) + `FacturaDtos` (`VenPedidoFacturaResponseDto`), DI en `Program.cs`, `stryker-0314.json`; build 0/0, Unit 231/231, Security 59/59, Integration 82/82, Database 2/2, Stryker 100.00% (`stryker-0314.json`).
+- **Desviaciones registradas:** sin `POST`/`CreateDto`/validador/folio Redis/`FacturaConsumer` (todo diferido a fase 06 por decisión del usuario en plan; `task.md` original pedía `VentasFacturaService` + `FacturaConsumer` + folio consecutivo); solo lectura `GET {id:int}` como exige el catálogo `03-17` (fila ya coincidente, sin cambios).
