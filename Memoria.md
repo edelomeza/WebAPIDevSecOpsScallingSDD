@@ -373,6 +373,11 @@
 - `main` local sincronizado en `5ccf73c` + build 0/0 + UnitTest 244/244 en `main`.
 - Spec `03-15` firmada a ✅ Aprobado (@usuario, 08-Oct-2026) en `phase03.6` (firma sin cambios sobre la evidencia; bus/compensación → fase 06, métricas → `08-01`).
 - Nota: `phase03.5` se conserva por decisión del usuario (no eliminar).
+## Cierre PR #9 phase03.6 mergeado a main (2026-10-08)
+- Merge `3b89e40` (PR #9 `phase03.6` → `main`): firma 03-15 a Aprobado (`0743789`) + cierre PR #8 en Memoria + skills 03-15.
+- `main` local sincronizado en `3b89e40` + build 0/0 + UnitTest 244/244 en `main`.
+- Spec `03-15` firmada y publicada en `main`; slice 03-15 cerrado por completo (queda bus/compensación → fase 06, métricas → `08-01`).
+- Nota: `phase03.6` se conserva por decisión del usuario (no eliminar).
 
 ## Fase 1 Sub-agentes hibridos ejecutado (2026-10-08)
 - Nuevos: `.opencode/agents/slice-scaffolder.md` (Fase A compilable, test que aserta cada diferido, snippet DI + fila 03-17; sin campo `name:` — el filename es el nombre segun docs OpenCode; `permission` distingue roles), `.opencode/agents/security-reviewer.md` (`edit: deny`, diff-scoped vs `origin/main`, 4 bloqueantes + avisos), `.opencode/agents/README.md` (convencion: enlazan SKILL.md, nunca copian; `traceability-clerk` diferido a Fase 2), `scripts/critic-guardrails.ps1` (PS 5.1, exit 0/1).
@@ -380,7 +385,7 @@
 - Modificados: `pull_request_template.md` (3 -> 8 checks), `ci-pr.yml` (+job `critic` paralelo sin `needs`, mismo SHA checkout, `shell: pwsh`), `AGENTS.md` §11.
 - Self-test critic: scratch con TODO+sin-auth+catch+password -> FAIL 4/1 aviso, exit 1; tras borrar -> PASS exit 0; PASS sobre el diff real del PR. Leccion: untracked no salen en `git diff HEAD` (anadido `ls-files --others`); `# Todo` en prosa dispara el regex (reword a `# Ambito`); untracked sin diff requieren scan directo para B4.
 - Verificacion: YAML parse `npx js-yaml` OK; build Release 0/0; UnitTest 244/244; SecurityTest 60/60; IntegrationTest 85/85; 7 skills referenciadas existen. Semgrep queda a CI (sin C# nuevo). Dry-run scaffolder en `exp/` pendiente como follow-up.
-- Estado: pendiente commit/PR (rama `phase03.6`, `origin/main` ya contiene HEAD local).
+- Estado: resuelto conflicto de merge con `origin/main` (Cierre PR #9) en `phase03.6`; pendiente PR a `main`.
 
 ## README actualizado al estado 03-15 + sub-agentes (2026-10-08)
 - `README.md` (ingles) reconciliado con la realidad 08-Oct: lede (saga minima + dashboard verdes), tabla 8 -> 16 controllers con 3 patrones de auth + matriz viva 03-17, `Measured state` 244/85/60/2 + gate Stryker >=80% (corrige "100%" que contradecia 03-10/03-12), configs `0301..0315`, `Key decisions` +3 (refresh/logout opaco, venta legacy, saga fake-first), `Rules learned` +7 (serie InMemory, NU1100 pristino, semgrep scan, SHA pineados, `IsRelational`, `ThrowingContext`, `NOTE` vs S1135), roadmap (aprobados 03-00..03-08 + 03-10..03-15; pendientes 03-09/03-16/03-17 viva) y gaps (workflows ya existen: 6 jobs + `critic`; coverage/semgrep stubs).
