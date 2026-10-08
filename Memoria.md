@@ -391,3 +391,12 @@
 ## README actualizado al estado 03-15 + sub-agentes (2026-10-08)
 - `README.md` (ingles) reconciliado con la realidad 08-Oct: lede (saga minima + dashboard verdes), tabla 8 -> 16 controllers con 3 patrones de auth + matriz viva 03-17, `Measured state` 244/85/60/2 + gate Stryker >=80% (corrige "100%" que contradecia 03-10/03-12), configs `0301..0315`, `Key decisions` +3 (refresh/logout opaco, venta legacy, saga fake-first), `Rules learned` +7 (serie InMemory, NU1100 pristino, semgrep scan, SHA pineados, `IsRelational`, `ThrowingContext`, `NOTE` vs S1135), roadmap (aprobados 03-00..03-08 + 03-10..03-15; pendientes 03-09/03-16/03-17 viva) y gaps (workflows ya existen: 6 jobs + `critic`; coverage/semgrep stubs).
 - Verificacion: solo markdown, critic PASS exit 0; sin cambios de codigo (sin build/tests requeridos).
+
+## Cierre PR #11 phase03.6 mergeado a main (2026-10-08)
+- Merge `4ef3be9` (PR #11 `phase03.6` ÔåÆ `main`): Fase 1 sub-agentes hibridos (`07bb89f` merge + `e16d840` agentes/critic/README + `4bb2689` hardening critic).
+- `main` local sincronizado en `4ef3be9` + build 0/0 + UnitTest 244/244 en `main` (sin push: solo fast-forward local).
+- Fase 1 cerrada por completo en `main`: 2 sub-agentes, `critic` en CI, PR template 8 checks, AGENTS ┬º11, README al dia.
+
+## Push phase03.7 a origin (2026-10-08)
+- Incluye `0bf4a41` 03-09 T1 espec real (`task.md` 5+/3-: OtpNet +-1, DTOs/validators, `stryker-0309.json`, `SegUsuario`/`Program.cs`, diferidos NOTE 04-01/04-02/04-04) + 6 previos (Fase 1 + hardening critic + cierres PR #10/#11).
+- Solo markdown/spec, sin cambios de codigo (sin build/tests requeridos).
