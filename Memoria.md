@@ -396,3 +396,7 @@
 - Merge `4ef3be9` (PR #11 `phase03.6` ÔåÆ `main`): Fase 1 sub-agentes hibridos (`07bb89f` merge + `e16d840` agentes/critic/README + `4bb2689` hardening critic).
 - `main` local sincronizado en `4ef3be9` + build 0/0 + UnitTest 244/244 en `main` (sin push: solo fast-forward local).
 - Fase 1 cerrada por completo en `main`: 2 sub-agentes, `critic` en CI, PR template 8 checks, AGENTS ┬º11, README al dia.
+
+## Push phase03.7 a origin (2026-10-08)
+- Incluye `0bf4a41` 03-09 T1 espec real (`task.md` 5+/3-: OtpNet +-1, DTOs/validators, `stryker-0309.json`, `SegUsuario`/`Program.cs`, diferidos NOTE 04-01/04-02/04-04) + 6 previos (Fase 1 + hardening critic + cierres PR #10/#11).
+- Solo markdown/spec, sin cambios de codigo (sin build/tests requeridos).
