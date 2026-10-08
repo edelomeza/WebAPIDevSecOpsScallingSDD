@@ -34,7 +34,9 @@ Catálogo consolidado y vivo de todos los endpoints de la API. **Depende de**: `
 | POST | /api/v1/ventas/{id}/detalles | Bearer | ConcurrentWrites 10 | VenVentaDetalleCreateDto | 201 Created | 201/400/401/403/404 |
 | DELETE | /api/v1/ventas/detalles/{id} | Bearer | ConcurrentWrites 10 | — | 204 | 204/401/403/404 |
 | POST | /api/v1/ventas/pedido | AdminOnly+AdminPolicy | Admin 200/min | PedidoCreateDto | PedidoResponseDto | 201/400/401/403 |
-| GET | /api/v1/ventas/pago/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | VenPedidoPagoResponseDto | 200/401/403/404 |
+| POST | /api/v1/ventas/pago | AdminOnly+AdminPolicy | Admin 200/min | PagoCreateDto | PagoResponseDto | 201/400/401/403/409/422 |
+| GET | /api/v1/ventas/pago/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto | 200/401/403/404 |
+| GET | /api/v1/ventas/pago/pedido/{pedidoId} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto[] | 200/401/403 |
 | GET | /api/v1/ventas/factura/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | VenPedidoFacturaResponseDto | 200/401/403/404 |
 | GET | /api/v1/ventas/dashboard | AdminOnly+AdminPolicy | Admin 200/min | — | DashboardDto | 200/401/403 |
 
