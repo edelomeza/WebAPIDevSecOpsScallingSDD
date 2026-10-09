@@ -5,7 +5,7 @@ description: Mutation testing con Stryker.NET y umbrales documentados
 
 ## Propósito
 
-Stryker.NET por slice con gate ≥80% y patrones de kill probados en `03-01`…`03-15`.
+Stryker.NET por slice con gate ≥80% y patrones de kill probados en `03-01`…`03-16`.
 
 ## Pasos
 
@@ -29,8 +29,8 @@ Gate ≥80% con margen; supervivientes restantes solo de clases aceptadas.
 ## Límites/trampas
 
 - Aceptados fuera del scope UnitTest (documentar, no perseguir): mutantes CompileError (`Count→Sum`, `-` sobre `string+int` no compilan); `IsRelational()` y Tx/commit/dispose (solo MsSql relacional); `RemoveAsync` sobre `Guid` fresco (equivalente); `Safe Mode` puede ocultar métodos sin test.
-- Precedentes: `03-04` 97.67%→100%, `03-10` 83.93%, `03-11` 86.05%→90.70%, `03-12` 76.00%→85.71%→87.76%, `03-13` 86.36%→95.45% (`ThrowingContext`; resto 2 `RemoveAsync` en id fresco equivalentes), `03-14` 100.00% primer run (GET-only, 11 killed + 6 ignored por `Boolean`+block-removal), `03-15` 72%→100.00% (borde en 3 tablas + llaves exactas; 47 killed + 1 CompileError `Count→Sum` + 28 ignored).
+- Precedentes: `03-04` 97.67%→100%, `03-10` 83.93%, `03-11` 86.05%→90.70%, `03-12` 76.00%→85.71%→87.76%, `03-13` 86.36%→95.45% (`ThrowingContext`; resto 2 `RemoveAsync` en id fresco equivalentes), `03-14` 100.00% primer run (GET-only, 11 killed + 6 ignored por `Boolean`+block-removal), `03-15` 72%→100.00% (borde en 3 tablas + llaves exactas; 47 killed + 1 CompileError `Count→Sum` + 28 ignored), `03-09` 68.42%→79.57%→94.62%→`93.41%` final tras refactor post-critic (`break 80`, 4 runs; equivalentes `new TwoFactorResult{Enabled=0}`, `RemoveAsync lockout:` inaccesible eliminado, `catch FormatException` eliminado — solo `ArgumentException`), `03-16` **100%** 1 run (`stryker-0316.json`).
 
 ## Referencias
 
-`stryker-0301.json`, `stryker-0310.json`, `stryker-0311.json`, `stryker-0312.json`, `stryker-0313.json`, `stryker-0314.json`, `stryker-0315.json`, `Memoria.md`.
+`stryker-0301.json`, `stryker-0309.json`, `stryker-0310.json`, `stryker-0311.json`, `stryker-0312.json`, `stryker-0313.json`, `stryker-0314.json`, `stryker-0315.json`, `stryker-0316.json`, `Memoria.md`.

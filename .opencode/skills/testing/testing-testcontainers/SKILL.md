@@ -15,13 +15,11 @@ SQL real con puerto fijo.
 
 Restart sobrevive; migraciones aplican; rollback a "0"; daemon Docker corriendo (ver `docker version` Server) antes de ejecutar.
 
-## Checklist
-
-Restart sobrevive; migraciones aplican; rollback a "0".
 
 ## Límites/trampas
 
 Orden v4 `(hostPort, containerPort)`.
+Evidencia ambiental (sin cambio funcional): Docker detenido `03-15` (misma regla `03-02/11/12/13`); Docker ausente `03-09` (Testcontainers no ejecutables, solo `TwoFactor 6/6` sin Docker); `55/56` en `03-16` solo por Redis-Docker ambiental.
 
 ## Referencias
 

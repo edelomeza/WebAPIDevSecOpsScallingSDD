@@ -454,5 +454,20 @@
 - Verificación: build 0/0; Unit 289/289 (+14), Security 62/62, Integration
   Errors 8/8 (+37/37, 55/56 con solo Redis-Docker ambiental); Stryker **100%**
   (break 80, 1 run, `stryker-0316.json`); critic PASS (1 aviso GET-only).
-- Spec/plan/task 03-16 retro-portados (Borrador con evidencia). Sin
-  commit/push (rama `phase03.9` local).
+- Spec/plan/task 03-16 retro-portados (Borrador con evidencia). Commiteado y
+  pusheado en rama `phase03.9` (2026-10-09).
+
+## Cierre PR #15 phase03.9 mergeado a main (2026-10-09)
+- Merge `738ae13` (PR #15 `phase03.9` → `main`): 03-16 Errors T1 real (`8c484a5`).
+- `main` local sincronizado en `738ae13` + build 0/0 + UnitTest 289/289 en `main`.
+- Spec `03-16` pendiente de firma (Borrador con evidencia).
+- Ramas `phase03.9` local y `origin/phase03.9` eliminadas tras el merge (a
+  petición del usuario).
+
+## Skills actualizadas con experiencia 03-15/03-09/03-16 + Fase 1 (2026-10-09, rama `phase03.10`)
+- 23 SKILL.md actualizados + 3 nuevos, en un solo batch en la rama actual (decisión del usuario).
+- Nuevas: `operations/critic-guardrails` (dueña de `scripts/critic-guardrails.ps1`: 4 bloqueantes diff-scoped, `Invoke-Git 2>&1` + EAP `Continue`, unión diff+untracked, `PASS (N files)`, waiver `Secret` 03-09); `phases/04-totp-provisioning` (OtpNet ±1, DataProtection `TwoFactor`, `ITotpProvisioner`, `2fa:{userId}`, `SetupAsync→null`, Stryker 93.41%); `phases/03-errors-middleware` (canon `ErrorResponse` + middleware único + sondas `probe` gateadas + factories `Staging`, Stryker 100%).
+- Updates Auth/2FA (5): `03-auth-endpoints`, `04-jwt-refresh` (realidad opaca + 03-09), `04-security-core`, `core/auth-matrix` (fila two-factor), `core/deferred-scope-fakes` (swap 03-09 ejecutado).
+- Updates Slice/Errores/Fase 1 (7): `03-api-base`, `03-api-vertical-slice`, `core/vertical-slice`, `03-saga-endpoints`, `03-legacy-sales` (canon `EnsureOwner→throw`), `core/traceability`, `core/spec-first-writing` (gates Fase A + critic + evidencia 0316); higiene: Checklist duplicados eliminados en `03-api-vertical-slice`/`traceability`/`07-static-analysis`/`05-cache-redis`/`testing-testcontainers`, `## Pasos` duplicado de `03-saga-endpoints` a `Detalle por endpoint` + `AdminOnly` corregido a `AdminPolicy`.
+- Updates Testing/Cache/CI (11): `testing-mutation` (refs 0309/0316 + tope …03-16), `testing-webappfactory` (`Staging`/`probe`/TwoFactor/`>=1`), `testing-strategy` (conteos 289/85/62/2 + estrategias TwoFactor/Errors), `analyzer-quickref` (filas S3041 + waiver `Secret` + canon 03-16), `powershell-quirks` (hardening `Invoke-Git`), `09-ci-matrix` (job `critic` + 8 checks), `09-cicd-ops` (sincronizado con ci-matrix), `07-static-analysis` + `07-quality-supply-chain` (tope + scores), `05-cache-redis` (dashboard sin `VersionKey` + `2fa:{userId}`), `testing-testcontainers` (solo nota ambiental).
+- Verificación: solo markdown (sin código); `scripts/critic-guardrails.ps1` → PASS antes del commit.

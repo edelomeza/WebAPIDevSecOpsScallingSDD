@@ -12,6 +12,7 @@ Integration/Security con `WebApplicationFactory<Program>`.
 `public partial class Program` (pragmas `S1118`/`CA1515`); `UseInMemoryDatabase=true`; `Reset()` de estáticos (`TokenBlacklist` estático cruza tests sin `Reset()`).
 `TestAuthHandler` ("Test"): rol vía header `X-Test-Role`, usuario vía `X-Test-UserId` (sin header = comportamiento intacto); fábrica Admin con `ConfigureTestServices` + pragma `CA2000`.
 Sin endpoint `POST` para una entidad: sembrar vía `factory.Services.CreateScope()` + `GetRequiredService<AppDbContext>()` (comparte el store InMemory del servidor; precedente `03-07` 2FA, aplicado `03-14`).
+Post-`03-16` (canon en `phases/03-errors-middleware`): `10` factories a `Staging` (en `Dev` la página de excepciones devolvería HTML); `Production` exige override `UseInMemoryDatabase=true`; sondas `GET /api/v1/probe/{timeout,error,forbidden}` gateadas `EnableProviderStates`+no-prod (`Errors 8/8`). `03-09`: stubs controlables en unit vs TOTP real solo en integración (`TwoFactor 6/6 + Login2Fa 4/4`). `03-15`: asserts `>=1` en dashboard por store compartido (no `TotalCount==1`).
 
 ## Checklist
 
@@ -25,4 +26,4 @@ TokenBlacklist estático cruza tests. Docker Desktop detenido → `DockerUnavail
 
 ## Referencias
 
-`IntegrationTest`, `SecurityTest`.
+`IntegrationTest`, `SecurityTest`, `phases/03-errors-middleware`, `phases/04-totp-provisioning`.
