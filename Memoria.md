@@ -532,3 +532,19 @@
 - Merge `5306119` (PR #19 `phase03.11` → `main`): 03-18 (`1309dc2`: 14 fixtures + ContractTest 4/4 + job `contract`) + firmas/addenda (`a5530f0`) + skills (`bd8a5eb`) + sub-agentes fase 04 (`2a2ec14`) + AGENTS.md (`56874c7`) + README (`5ce6979`).
 - `main` local sincronizado en `5306119` (fast-forward, working tree limpio).
 - Fase 03 cerrada por completo en `main`: 19/19 specs ✅ + 3 addenda cerrados + catálogo vivo + fixtures + docs operativos (AGENTS.md, README.md) al día.
+
+## Reconciliación .md 04-01-jwt-refresh (2026-10-09, solo docs)
+- `spec/plan/task.md` reescritos como delta JWT sobre `03-08` ✅ (no recrean slice opaco): `Program.cs` Anonymous → JwtBearer HS256 + swap `NOTE (04-01)` en `RefreshTokenService.cs`; blacklist `NOTE (04-02)` intacta; claves `01-04` solo env; catálogo en `docs/endpoints.md` sin duplicar.
+- Skills enlazadas (no copiadas): `phases/04-jwt-refresh`, `phases/03-errors-middleware`, `operations/drift-guards`, `operations/critic-guardrails`, `core/traceability`.
+- Estado: 🚧 Borrador (pendiente ejecución, sin revisor); gates definidos (Fase A `slice-scaffolder` + `@security-reviewer` + `critic`/`endpoints`).
+- Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## T1 — 04-01 JWT & Refresh ejecutado (2026-10-09)
+- Alcance acotado a Refresh/Logout (decisión usuario): Login/Login2Fa/TwoFactor/Venta conservan `NOTE (04-01)` opaco para `04-02/04-03`.
+- Nuevo `Services/JwtTokenService.cs` (`IJwtTokenService.CreateAccessToken`: `sub/jti/role`, HS256, exp 15min, key ≥32B fail-fast con fallback placeholder si ausente) + `Program.cs` JwtBearer tras flag `Authentication:UseJwtBearer` (default `true`; `false` = `Anonymous` legacy; Integration/Contract fuerzan `Test` vía `ConfigureTestServices`) con `TokenValidationParameters` estrictos + `OnTokenValidated` anti-`blacklist:{jti}`; `RefreshTokenService` inyecta `IJwtTokenService` en `Create/Rotate` (hash/rotación/revocación intactos).
+- Paquete autorizado `Microsoft.AspNetCore.Authentication.JwtBearer 10.0.12`; `nuget.config` sin cambios (`Microsoft.*` ya mapea); bins unificados IdentityModel 8.19.2 (MSB3277 solo ruido).
+- Config: `Authentication:UseJwtBearer` en tabla `01-04` + `appsettings.Example.json` (sin firma nueva en `01-04`, solo fila + Detalle).
+- Tests: `UnitTest/Jwt` (5) + `SecurityTest/Jwt` (5: alg-none/firma/expirado/reúso/logout-blacklist-replay); `RefreshTokenServiceTests` 9 con 1 test renombrado por formato JWT (ver `Desviaciones` en `spec.md`).
+- Verificación: build 0 + Unit 294/294 + Security 67/67 + Integration 92/92 (7 Docker-only excluidos: sin daemon local) + Contract 4/4 + `critic PASS (11)` + `endpoints OK (56)`; Stryker slice → nightly (tope local 25 min, umbral ≥83.93%).
+- Lecciones: `ClaimTypes.Role` no sobrevive al mapa outbound (payload sin `role`) → literal `"role"` en emisión (inbound lo eleva a `Role` para `AdminPolicy`); `EndsWith(char)` + `string.Concat/AsSpan` exigidos por CA1865/CA1845; CS8601 en indexer `IConfiguration` → local + ternaria.
+- Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; `security-reviewer` pre-push en curso).

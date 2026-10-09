@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -9,8 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System;
+using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using WebAPIDevSecOpsScallingSDD;
 
@@ -48,8 +52,79 @@ namespace WebAPIDevSecOpsScallingSDD
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(configuration);
             services.AddOpenApi();
-            services.AddAuthentication(options => options.DefaultChallengeScheme = "Anonymous")
-                .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Services.AnonymousChallengeHandler>("Anonymous", _ => { });
+            // (04-01) JWT HS256 real tras flag Authentication:UseJwtBearer (default true).
+            // false = esquema Anonymous legacy (solo pruebas locales). Integration/Contract fuerzan el esquema "Test" vía ConfigureTestServices.
+            var useJwtBearer = configuration.GetValue("Authentication:UseJwtBearer", true);
+            if (useJwtBearer)
+            {
+                var signingKey = configuration["Jwt:Key"];
+                if (string.IsNullOrWhiteSpace(signingKey))
+                {
+                    signingKey = Services.JwtTokenService.FallbackKey;
+                }
+
+                var signingKeyBytes = Encoding.UTF8.GetBytes(signingKey);
+                if (signingKeyBytes.Length < 32)
+                {
+                    throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256.");
+                }
+
+                var tokenIssuer = configuration["Jwt:Issuer"];
+                if (string.IsNullOrWhiteSpace(tokenIssuer))
+                {
+                    tokenIssuer = Services.JwtTokenService.FallbackIssuer;
+                }
+
+                var tokenAudience = configuration["Jwt:Audience"];
+                if (string.IsNullOrWhiteSpace(tokenAudience))
+                {
+                    tokenAudience = Services.JwtTokenService.FallbackAudience;
+                }
+
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                }).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(signingKeyBytes),
+                        ValidateIssuer = true,
+                        ValidIssuer = tokenIssuer,
+                        ValidateAudience = true,
+                        ValidAudience = tokenAudience,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+                        ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+                    };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var jti = context.Principal?.FindFirstValue("jti");
+                            if (string.IsNullOrWhiteSpace(jti))
+                            {
+                                context.Fail("Missing jti claim.");
+                                return;
+                            }
+
+                            var cache = context.HttpContext.RequestServices.GetRequiredService<Services.ICacheService>();
+                            var revoked = await cache.GetAsync<string>("blacklist:", jti).ConfigureAwait(false);
+                            if (string.Equals(revoked, "revoked", StringComparison.Ordinal))
+                            {
+                                context.Fail("Token revoked.");
+                            }
+                        },
+                    };
+                });
+            }
+            else
+            {
+                services.AddAuthentication(options => options.DefaultChallengeScheme = "Anonymous")
+                    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Services.AnonymousChallengeHandler>("Anonymous", _ => { });
+            }
             services.AddAuthorization();
             services.AddAuthorizationBuilder().AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
             services.AddMemoryCache();
@@ -81,6 +156,7 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<FluentValidation.IValidator<Dtos.Login2FaVerifyRequest>, Validators.Login2FaVerifyRequestValidator>();
             services.AddScoped<Services.ITwoFactorService, Services.TwoFactorService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.TwoFactorVerifyRequest>, Validators.TwoFactorVerifyRequestValidator>();
+            services.AddSingleton<Services.IJwtTokenService, Services.JwtTokenService>();
             services.AddScoped<Services.IRefreshTokenService, Services.RefreshTokenService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.RefreshRequest>, Validators.RefreshRequestValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.LogoutRequest>, Validators.LogoutRequestValidator>();

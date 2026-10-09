@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using WebAPIDevSecOpsScallingSDD.Context;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -16,25 +17,27 @@ namespace UnitTest.RefreshToken
             using var context = CreateContext();
             var cache = new FakeCacheService();
 
-            Assert.Throws<ArgumentNullException>(() => new RefreshTokenService(null!, cache));
-            Assert.Throws<ArgumentNullException>(() => new RefreshTokenService(context, null!));
+            Assert.Throws<ArgumentNullException>(() => new RefreshTokenService(null!, cache, CreateJwt()));
+            Assert.Throws<ArgumentNullException>(() => new RefreshTokenService(context, null!, CreateJwt()));
+            Assert.Throws<ArgumentNullException>(() => new RefreshTokenService(context, cache, null!));
         }
 
         [Fact]
-        public async Task CreateReturnsHexPairAndPersistsHashOnly()
+        public async Task CreateReturnsJwtAccessAndHashedRefresh()
         {
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, new FakeCacheService());
+            var service = new RefreshTokenService(context, new FakeCacheService(), CreateJwt());
 
             var pair = await service.CreateAsync(7);
 
-            Assert.Equal(64, pair.Token.Length);
+            Assert.Equal(3, pair.Token.Split('.').Length);
             Assert.Equal(64, pair.RefreshToken.Length);
             Assert.NotEqual(pair.Token, pair.RefreshToken);
             var row = await context.SegRefreshTokens.SingleAsync();
             Assert.Equal(7, row.idSegUsuario);
             Assert.Equal(64, row.strTokenHash.Length);
             Assert.DoesNotContain(pair.RefreshToken, row.strTokenHash, StringComparison.Ordinal);
+            Assert.DoesNotContain(pair.Token, row.strTokenHash, StringComparison.Ordinal);
             Assert.Null(row.dteRevokedAt);
             Assert.True(row.dteExpiresAt > DateTime.UtcNow);
         }
@@ -43,7 +46,7 @@ namespace UnitTest.RefreshToken
         public async Task RotateEmitsNewAndRevokesOldWithReplacementLink()
         {
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, new FakeCacheService());
+            var service = new RefreshTokenService(context, new FakeCacheService(), CreateJwt());
             var pair = await service.CreateAsync(7);
 
             var rotated = await service.RotateAsync(pair.RefreshToken);
@@ -63,7 +66,7 @@ namespace UnitTest.RefreshToken
         public async Task ReusedTokenReturnsInvalid()
         {
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, new FakeCacheService());
+            var service = new RefreshTokenService(context, new FakeCacheService(), CreateJwt());
             var pair = await service.CreateAsync(7);
             var rotated = await service.RotateAsync(pair.RefreshToken);
             Assert.Equal(RefreshStatus.Rotated, rotated.Status);
@@ -81,7 +84,7 @@ namespace UnitTest.RefreshToken
         public async Task UnknownExpiredAndNonHexReturnInvalid()
         {
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, new FakeCacheService());
+            var service = new RefreshTokenService(context, new FakeCacheService(), CreateJwt());
             var pair = await service.CreateAsync(7);
 
             var unknown = await service.RotateAsync(new string('A', 64));
@@ -105,7 +108,7 @@ namespace UnitTest.RefreshToken
         public async Task RevokeMarksRowOnce()
         {
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, new FakeCacheService());
+            var service = new RefreshTokenService(context, new FakeCacheService(), CreateJwt());
             var pair = await service.CreateAsync(7);
 
             Assert.True(await service.RevokeAsync(pair.RefreshToken));
@@ -120,7 +123,7 @@ namespace UnitTest.RefreshToken
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, cache);
+            var service = new RefreshTokenService(context, cache, CreateJwt());
             var pair = await service.CreateAsync(7);
 
             await service.LogoutAsync(pair.RefreshToken, null);
@@ -138,7 +141,7 @@ namespace UnitTest.RefreshToken
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, cache);
+            var service = new RefreshTokenService(context, cache, CreateJwt());
             var pair = await service.CreateAsync(7);
 
             await service.LogoutAsync(pair.RefreshToken, "claim-jti-1");
@@ -151,7 +154,7 @@ namespace UnitTest.RefreshToken
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new RefreshTokenService(context, cache);
+            var service = new RefreshTokenService(context, cache, CreateJwt());
 
             await service.LogoutAsync(null, null);
             await service.LogoutAsync("   ", "  ");
@@ -165,6 +168,19 @@ namespace UnitTest.RefreshToken
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
             return new AppDbContext(options);
+        }
+
+        private static JwtTokenService CreateJwt(string? key = null)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Jwt:Key"] = key ?? new string('K', 32),
+                    ["Jwt:Issuer"] = "test-issuer",
+                    ["Jwt:Audience"] = "test-audience",
+                })
+                .Build();
+            return new JwtTokenService(configuration);
         }
 
         private sealed class FakeCacheService : ICacheService

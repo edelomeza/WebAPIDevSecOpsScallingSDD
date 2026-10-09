@@ -16,6 +16,7 @@ Referencia exhaustiva de configuración de la API. **Depende de**: `01-01`.
 | `ConnectionStrings:Default` | — | [Core / Implementado] | SQL Server (EF Core) |
 | `Jwt:Key` | `PLACEHOLDER_HS256_KEY_MIN_32_BYTES` | [Core / Implementado] | HS256, ≥32 bytes |
 | `Jwt:Issuer` / `Jwt:Audience` | placeholder | [Core / Implementado] | validación issuer/audience |
+| `Authentication:UseJwtBearer` | `true` | [Fase 04 / Implementado] | `true` = JwtBearer HS256; `false` = esquema `Anonymous` legacy (solo pruebas locales) |
 | `UseInMemoryDatabase` | `true` (local) / `false` (prod) | [Core / Implementado] | tests/local |
 | `Kestrel:Limits:MaxRequestBodySize` | `10485760` | [Core / Implementado] | 10 MB máx. ante DoS |
 | `Kestrel:Limits:KeepAliveTimeout` | `00:02:00` | [Core / Implementado] | keep-alive defensivo |
@@ -54,4 +55,4 @@ Transport/PERF_* en el JSON de ejemplo hasta que el código las consuma. `Redis:
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 04-Oct-2026
-- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`.
+- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`. (+`Authentication:UseJwtBearer` 09-Oct-2026, ver `04-01`; sin cambio de estado.)
