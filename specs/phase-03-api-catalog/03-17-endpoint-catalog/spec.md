@@ -43,7 +43,7 @@ Correcciones aplicadas sobre la tabla anterior (obsoleta):
 - Las policies de rate limit se implementan en `04-04`.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (tabla 56 filas + script verde, pendiente firma)
-- **Revisores:** —
-- **Fecha:** —
-- **Detalle:** ejecutado en `phase03.11` (opción B); `TwoFactorSetupRequest`/`AdminOnly` corregidos; rate-limit `NOTE 04-04`.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario
+- **Fecha:** 2026-10-09
+- **Detalle:** ejecutado en `phase03.11` (opción B), mergeado PR #17 (`8a497a6`); firma sin cambios sobre la evidencia (tabla 56 filas + script verde).

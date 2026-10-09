@@ -52,7 +52,7 @@ Manejo uniforme de excepciones sin try/catch ad-hoc. **Depende de**: `01-02`.
 - Suites Testcontainers (Docker ausente aquí) pendientes en CI.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (pendiente de revisor).
-- **Revisores:** —
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario
 - **Fecha:** 2026-10-09
-- **Detalle:** implementado en rama `phase03.9`; verificar PR + checklist.
+- **Detalle:** implementado en rama `phase03.9`, mergeado PR #15 (`738ae13`); firma sin cambios sobre la evidencia (middleware + purga, Unit 289/289, Stryker 100%).

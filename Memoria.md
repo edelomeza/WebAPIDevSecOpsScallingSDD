@@ -454,8 +454,9 @@
 - Verificación: build 0/0; Unit 289/289 (+14), Security 62/62, Integration
   Errors 8/8 (+37/37, 55/56 con solo Redis-Docker ambiental); Stryker **100%**
   (break 80, 1 run, `stryker-0316.json`); critic PASS (1 aviso GET-only).
-- Spec/plan/task 03-16 retro-portados (Borrador con evidencia). Commiteado y
+- Spec/plan/task 03-16 retro-portados. Commiteado y
   pusheado en rama `phase03.9` (2026-10-09).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia; merge PR #15).
 
 ## Cierre PR #15 phase03.9 mergeado a main (2026-10-09)
 - Merge `738ae13` (PR #15 `phase03.9` → `main`): 03-16 Errors T1 real (`8c484a5`).
@@ -477,13 +478,17 @@
 - `main` local sincronizado en `86af0ac` (fast-forward, working tree limpio).
 - Skills cerradas por completo en `main`: 47 `SKILL.md` (44 + 3 nuevas) con evidencia 03-15/03-09/03-16 + Fase 1.
 
+## Cierre PR #17 phase03.11 mergeado a main (2026-10-09)
+- Merge `8a497a6` (PR #17 `phase03.11` → `main`): 03-17 Endpoint Catalog opción B (`1008a10`: `docs/endpoints.md` 56 filas + `check_endpoints.ps1` + job `endpoints` + spec/task/plan).
+- Rama `phase03.11` local recreada desde el `main` actualizado (la anterior estaba 100% mergeada; working tree limpio, nada que arrastrar).
+
 ## T1 — 03-17 Endpoint Catalog ejecutado, opción B (2026-10-09, rama `phase03.11`)
 - `docs/endpoints.md` nuevo (56 filas: 7 auth/misc + 1 ping raíz + 3 `probe` solo no-prod + 31 CRUD/search/autocomplete + 14 ventas/saga; rate-limit como `NOTE 04-04`; nota `ErrorResponse` post-`03-16`).
 - Hallazgo del inventario: `GET /ping` raíz (texto `"pong"`, `Program.cs:25`) existe además de `GET /api/v1/ping` del controller; las sondas `probe/*` son minimal APIs en `Program.cs:217-223` (no hay `ProbeController`), gate `EnableProviderStates` + no-prod.
 - `spec.md` conciliado (6 correcciones: `AdminOnly→AdminPolicy`, `TwoFactorSetupRequest` eliminado — `setup` sin DTO —, `Usuario*→SegUsuario*`, rutas faltantes, rate `NOTE`, códigos `409/422/403`); `task.md`/`plan.md` reescritos a formato estándar; skill `09-ci-matrix` +1 job.
 - `scripts/check_endpoints.ps1` nuevo (PS 5.1, sin dependencias): extrae `[HttpX]`+`[Route]` de los 17 controllers + `MapGet` de `Program.cs`, respeta placeholders `{idVenta:int}` al normalizar, exige fila `| VERBO | ruta |`; primer run cazó 3 gaps reales (placeholders + `/ping` no inventariado) → `OK (56 rutas)` tras fixes; job `endpoints` en `ci-pr.yml` (paralelo, `shell: pwsh`).
 - Verificación: script `OK exit 0` + `critic PASS (8 files) exit 0` + YAML parse OK; sin código de producto (sin build/tests).
-- Estado spec: 🚧 Borrador con evidencia (pendiente firma).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia).
 
 ## T1 — 03-18 JSON Contracts ejecutado, fixtures + test (2026-10-09, rama `phase03.11`)
 - `ContractTest/Fixtures/*.json` (14, fuente única): captura real del wire con `CONTRACT_CAPTURE=1` (`FixtureCaptureTests`: ping → usuarios/clientes/productos/estados → paged/autocomplete → login → refresh vía `IRefreshTokenService.CreateAsync` scoped → pedido → pago → venta → dashboard → 404; `IntegrationTest/Common/` no existe y no se crea).
@@ -492,4 +497,33 @@
 - Cableado: `ContractTest.csproj` (Mvc.Testing + TestHost + ProjectReference API + `NoWarn CA1515`), `ContractAuthHandler`, `xunit.runner.json` en serie; analizadores que mordieron: CA1515 + xUnit1030 (fixes del quickref).
 - CI: job `contract` nuevo en `ci-pr.yml` (InMemory, sin Docker); skill `testing-pact` engordada con la fase previa.
 - Verificación: build 0/0; ContractTest 4/4; critic PASS.
-- Estado spec: 🚧 Borrador con evidencia (pendiente firma; Pact/`Login2FaVerifyResponse` → fase 10).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia; Pact/`Login2FaVerifyResponse` → fase 10).
+
+## Firmas 03-16/03-17/03-18 + cierre addenda T2 (2026-10-09, rama `phase03.11`)
+- Firmados sin cambios: `03-16` (merge PR #15), `03-17` (merge PR #17), `03-18` (en `phase03.11`, PR pendiente) → ✅ Aprobado (@usuario, 09-Oct-2026).
+- Addenda T2 cerrados como fusionados: `03-01/spec-search-autocomplete.md`, `03-02/spec-search.md`, `03-03/spec-search-by-name.md` → ✅ Aprobado (fusionado y cerrado); línea T2 añadida al Detalle de cada `spec.md` principal (puntero al addendum + `docs/endpoints.md`). Los T2 de `03-05/03-10/03-11` ya vivían integrados en sus principales Aprobados (sin addendum separado por decisión del usuario).
+- Fase 03 al 100%: 19/19 specs principales ✅ + 3 addenda cerrados. Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## Skills actualizadas con experiencia 03-17/03-18/cierres (2026-10-09, rama `phase03.11`)
+- 10 SKILL.md tocados + 1 nueva, solo `.md` (sin push por decisión del usuario).
+- Fix contradicción: `03-api-base` exigía "PascalCase puro" y el test de `03-18` lo tumbó → convención legacy medida (`IsConventional`) + fuentes únicas (`docs/endpoints.md`, `ContractTest/Fixtures`).
+- Sync CI/testing: `09-ci-matrix` (+job `contract`), `09-cicd-ops` (jobs `endpoints`+`contract`), `testing-pact` (cross-links), `testing-strategy` (contract 4 + serie `ContractTest` + excepción flujo único de captura).
+- Patrones metodología: `traceability` (firma masiva + cierre addenda con línea T2), `spec-first-writing` (no duplicar tablas vivas), `powershell-quirks` (guards sin dependencias + normalización de placeholders), `analyzer-quickref` (fila `ContractTest` 03-18 + `NoWarn CA1515`; tope …03-18 en `07-static-analysis`).
+- Nueva: `operations/drift-guards` (dueña del patrón canónico + extractor + job CI; guards vigentes: `check_endpoints`).
+- Verificación: `critic PASS` antes del commit.
+
+## AGENTS.md sincronizado con la realidad 03-18 (2026-10-09, rama `phase03.11`)- 10 fixes: convención legacy medida en §1 (NO PascalCase puro), banner fase 03 retirado, `ContractTest` en comandos, orden CI real (`critic→endpoints→contract→semgrep`), `check_endpoints`+`critic` en §4, Contract por captura (Pact→fase 10), semgrep sin `--metrics=off`, quirks `ContractTest` + `analyzer-quickref`, §11 con 3 agentes + `drift-guards`, structure (`docs/`, `.opencode/`, `ContractTest` real).
+- §3 +2 límites (no PascalCase puro, no duplicar tablas vivas). `constitution.md` raíz no se crea (opción A: la canónica vive en `specs/phase-00-constitution/`).
+- Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## Sub-agentes para fase 04: 2 updates + 1 nuevo (2026-10-09, rama `phase03.11`)
+- `slice-scaffolder`: `last-synced` al día + variante swap fake→real (precedente `03-09`: `grep NOTE`, re-Stryker, waiver) + enlaces a skills nuevas (`04-totp-provisioning`, `03-errors-middleware`, `drift-guards`).
+- `security-reviewer`: `last-synced` al día + 5 checks fase 04 (JWT estrictos, anti-degradación de hash, rate-limit con fila `04-04`, headers/CORS, secretos en logs); WARN hasta ejecutar su spec, FAIL desde su merge.
+- Nuevo `traceability-clerk` (adelantado de Fase 2): matrices `04-04`/`04-05` + addenda verificados contra código, `edit deny`, solo reporta gaps; evita checklist ASVS ficticio.
+- `README.md` de agentes actualizado (tabla + skills enlazadas).
+- Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## README.md reconciliado + areas SDD/sub-agentes (2026-10-09, rama `phase03.11`)
+- 7 falsedades corregidas (03-09/03-16/03-17 pendientes, ContractTest placeholder, Stryker hasta 0315, PascalCase, 16 controllers, middleware sin ExceptionHandling, CI sin endpoints/contract, counts 08-Oct, TOTP fake) + matriz canonica a `docs/endpoints.md`.
+- Nuevas secciones `## SDD components` (10 componentes con puntero) y `## Sub-agentes` (tabla 3 agentes + convencion hibrida); roadmap (fase 03 19/19 aprobada, pendiente PR #18) y `Key decisions` (TOTP real, `IsConventional`).
+- Verificacion: solo `.md`; `critic PASS` antes del commit.

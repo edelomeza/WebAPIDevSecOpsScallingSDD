@@ -33,4 +33,4 @@ Vertical slice CRUD de `ProProducto` (mismo patrón que `03-01`). **Depende de**
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 05-Oct-2026
-- **Detalle:** slice `ProProducto` + Stryker 100%, `AdminPolicy` stub, 401/403/409, precio/existencia ≥0, URL nullable solo longitud.
+- **Detalle:** slice `ProProducto` + Stryker 100%, `AdminPolicy` stub, 401/403/409, precio/existencia ≥0, URL nullable solo longitud. T2 search-by-name (addendum fusionado 09-Oct-2026): `SearchByNameAsync` + ruta `search`, ver `spec-search-by-name.md` y `docs/endpoints.md`.

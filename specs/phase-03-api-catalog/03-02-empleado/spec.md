@@ -33,4 +33,4 @@ Vertical slice CRUD de `EmpEmpleado` (mismo patrón que `03-01`). **Depende de**
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 05-Oct-2026
-- **Detalle:** slice `EmpEmpleado` + Stryker 100%, `AdminPolicy` stub, 401/403/409, FK doble capa →400, CURP regex.
+- **Detalle:** slice `EmpEmpleado` + Stryker 100%, `AdminPolicy` stub, 401/403/409, FK doble capa →400, CURP regex. T2 search (addendum fusionado 09-Oct-2026): `SearchAsync` + ruta `search`, ver `spec-search.md` y `docs/endpoints.md`.

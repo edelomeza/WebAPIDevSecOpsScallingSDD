@@ -35,4 +35,4 @@ Criterios son verificables (comando o test); sin ambigüedad.
 
 ## Límites/trampas
 
-No escribir specs horizontales por capa; no omitir "Límites conocidos".
+No escribir specs horizontales por capa; no omitir "Límites conocidos"; no duplicar tablas vivas en el spec (probado `03-17`: el canónico vive en `docs/endpoints.md` y el spec solo enlaza + registra correcciones; la duplicación se pudre y la cubre `operations/drift-guards`).

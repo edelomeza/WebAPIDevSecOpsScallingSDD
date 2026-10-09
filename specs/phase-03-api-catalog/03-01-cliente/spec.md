@@ -36,4 +36,4 @@ Primer vertical slice: CRUD de `CliCliente` con validación, caché, auth y conc
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 04-Oct-2026
-- **Detalle:** slice `CliCliente` + Stryker 100%, `AdminPolicy` stub, 401/403.
+- **Detalle:** slice `CliCliente` + Stryker 100%, `AdminPolicy` stub, 401/403. T2 search/autocomplete (addendum fusionado 09-Oct-2026): `SearchByNameAsync`/`AutocompleteAsync` + rutas `search`/`autocomplete`, ver `spec-search-autocomplete.md` y `docs/endpoints.md`.
