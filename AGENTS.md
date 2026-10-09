@@ -7,13 +7,15 @@
 - Setup: copiar `appsettings.Example.json` → `appsettings.json`; opcional
   `UseInMemoryDatabase: true`; `dotnet restore`; `docker compose -f deploy/docker-compose.local.yml up -d`.
 - Comandos: `dotnet restore`, `dotnet build -c Release --no-restore`,
-  `dotnet test <csproj> -c Release --no-build` (Unit, Integration, Security),
-  `dotnet run --project WebAPIDevSecOpsScallingSDD/WebAPIDevSecOpsScallingSDD.csproj`.
-- Orden CI: restore → build → unit → integration → security → database → contract → mutation (nightly) → performance (nightly) → chaos (nightly). Tests con `--no-build`.
+  `dotnet test <csproj> -c Release --no-build` (Unit, Integration, Security,
+  Contract), `dotnet run --project WebAPIDevSecOpsScallingSDD/WebAPIDevSecOpsScallingSDD.csproj`.
+- Orden CI real (`ci-pr.yml`): restore → build → unit → integration → security → critic → endpoints → contract → semgrep. Tests con `--no-build`. (`database`/mutation/perf/chaos: solo nightly/fase futura.)
 - Ramas/PRs: un PR = una feature/fix; checklist `CHECKLIST_PR.md` obligatorio;
   reviewer verifica sin regresiones de cobertura.
 - Naming: código en inglés; tablas/columnas mantienen `Ven*`, `Cli*`, `Emp*`,
-  `Pro*`, `Seg*` con prefijos `str/int/dec/dte/bln`.
+  `Pro*`, `Seg*` con prefijos `str/int/dec/dte/bln`. JSON: convención legacy
+  medida (prefijos minúsculos + resto PascalCase + `id`/sufijo; ver
+  `IsConventional` en `ContractTest`), NO PascalCase puro.
 - Sin secretos, sin TODOs sin issue, sin usings no usados, sin código muerto.
 - Al terminar, resume qué has cambiado y cualquier decisión que deba revisar
 
@@ -45,17 +47,21 @@
 - No reemplazar Argon2id por hash débil; fallback BCrypt solo para migración.
 - No tocar `Program.cs` pipeline sin respetar el orden de middleware.
 - Rate limits relajados solo vía env `PERF_*` o config explícita; no en prod.
+- No asumir PascalCase puro en JSON (convención legacy medida, §1).
+- No duplicar tablas vivas en specs (el canónico vive en `docs/`, el spec enlaza).
 - Siempre: actualizar Memoria.md al terminar cada tarea.
 
 ## 4. Verificación
 
 - Build Release 0 errores antes de test.
-- Unit, Integration, Security con `--no-build`; 100% verdes local.
+- Unit, Integration, Security, Contract con `--no-build`; 100% verdes local.
+- `powershell -File scripts/critic-guardrails.ps1` → `PASS exit 0`.
+- `powershell -File scripts/check_endpoints.ps1` → `OK exit 0` (toda ruta con fila en `docs/endpoints.md`).
 - `python scripts/check_coverage.py` (umbral real 45%).
 - `dotnet stryker` para mutation (nightly, timeout 180 min).
 - Tras Stryker, siempre `dotnet build` antes de cualquier test `--no-build` (Stryker deja binarios mutantes en `bin/`).
 - Chaos nightly: `run-chaos.ps1`, exit 0 PASS / 1 FAIL / 2 suite error.
-- Contract/Pact contra proceso real en puerto libre + `/health` + kill en `finally`.
+- Contract: fixtures por captura real en `ContractTest/Fixtures` (WAF + InMemory; regenerar con `$env:CONTRACT_CAPTURE="1"`); Pact contra proceso real queda para fase 10.
 - Validar YAML CI localmente (`python -c "import yaml; yaml.safe_load(...)"`).
 - Verificar nombres reales de métricas con `curl /metrics` antes de dashboards.
 
@@ -78,9 +84,9 @@ fuera de Git (`.gitignore` cubre `appsettings.Local.json`).
 
 ## 5. Convenciones técnicas
 
-> 🚧 [FASE 03 - PENDIENTE] Esta funcionalidad esta especificada pero aun no implementada en el repositorio real.
+> Fase 03 terminada y firmada 19/19 (09-Oct-2026). Fuente viva de rutas: `docs/endpoints.md` (verificado por `scripts/check_endpoints.ps1`).
 
-- Rutas `api/v{version}/[controller]`; JSON PascalCase; DTOs + FluentValidation.
+- Rutas `api/v{version}/[controller]`; DTOs + FluentValidation; nombres según convención legacy (§1).
 - Health `/health`, `/health/ready`, `/health-ui`; `/metrics`; `/scalar` solo Dev.
 - Redis keys: `blacklist:{jti}`, `attempts:{user}`, `lockout:{user}`,
   `cache:{entidad}:...` con TTL; password nunca en cache.
@@ -97,7 +103,7 @@ fuera de Git (`.gitignore` cubre `appsettings.Local.json`).
 - Argon2id 64MB/3 iter; lockout; 2FA TOTP; anti-enumeration; CORS single origin.
 - Headers de seguridad + CSP nonce; HSTS solo no-Dev.
 - Assembly integrity check; audit hash chain; request timeout 60s.
-- SAST: Semgrep (`semgrep ci --config=auto --config=.semgrep/semgrep.yaml --error --metrics=off`).
+- SAST: Semgrep (`semgrep scan --config=auto --config=.semgrep/semgrep.yaml --error`; `scan` rechaza `--metrics=off`).
 - Contenedores: Trivy + dockle (HIGH/CRITICAL falla); ZAP en PR y main.
 - SonarCloud Quality Gate informativo; new code coverage ≥80%.
 
@@ -107,6 +113,10 @@ fuera de Git (`.gitignore` cubre `appsettings.Local.json`).
 
 - xUnit + FluentAssertions + Moq + FsCheck; WebApplicationFactory para
   Integration/Security.
+- `ContractTest`: captura con `CONTRACT_CAPTURE=1` (sin la variable valida sin
+  escribir); `xunit.runner.json` en serie; convención medida en
+  `IsConventional` (NO PascalCase puro). Tabla regla→fix:
+  `.opencode/skills/testing/analyzer-quickref/SKILL.md`.
 - SecurityTest referencia helpers de `UnitTest/Common/` (`TokenHelper`,
   `TestDataFactory`).
 - `IntegrationTest` usa `Testcontainers.MsSql` con puerto fijo para restart.
@@ -144,13 +154,18 @@ Las 13 reglas constitucionales derivadas de fallos históricos y optimizaciones 
 ## 11. Sub-agentes (híbrido agentes → skills)
 
 - `slice-scaffolder`: Fase A (esqueleto compilable vertical-slice intra-PR,
-  con test que aserta cada diferido); nunca se commitea sin su Fase B.
-- `security-reviewer`: gate pre-push (critica sin editar, sin Stryker).
-- Invocación manual en dev (`@slice-scaffolder`, `@security-reviewer`); en CI
-  solo corre el job `critic` ligero (`scripts/critic-guardrails.ps1`).
-- Fuente de reglas: `.opencode/skills/` (los agentes solo enlazan SKILL.md,
-  nunca copian). Identidad y convención: `.opencode/agents/README.md`.
-- `traceability-clerk` queda diferido a Fase 2.
+  con test que aserta cada diferido) + variante swap fake→real (fase 04);
+  nunca se commitea sin su Fase B.
+- `security-reviewer`: gate pre-push (critica sin editar, sin Stryker;
+  + checks fase 04: JWT, hash, rate-limit, headers, secretos en logs).
+- `traceability-clerk`: matrices vivas 04-04/04-05 + addenda (reporta drift,
+  no edita; adelantado de Fase 2 para fase 04).
+- Invocación manual en dev (`@slice-scaffolder`, `@security-reviewer`,
+  `@traceability-clerk`); en CI solo corre el job `critic` ligero
+  (`scripts/critic-guardrails.ps1`).
+- Fuente de reglas: `.opencode/skills/` (48 con `drift-guards`; los agentes
+  solo enlazan SKILL.md, nunca copian). Identidad y convención:
+  `.opencode/agents/README.md`.
 
 
 ---
@@ -166,12 +181,14 @@ Las 13 reglas constitucionales derivadas de fallos históricos y optimizaciones 
 | `IntegrationTest` | `IntegrationTest/` | xUnit + `WebApplicationFactory` + Testcontainers |
 | `SecurityTest` | `SecurityTest/` | xUnit + `WebApplicationFactory` |
 | `DatabaseTest` | `DatabaseTest/` | Testcontainers for migrations/seed |
-| `ContractTest` | `ContractTest/` | Pact contract tests |
+| `ContractTest` | `ContractTest/` | xUnit: fixtures por captura real + convención de nombres (Pact en fase 10) |
 | `MutationTest` | `MutationTest/` | Stryker mutation tests |
 | `PerformanceTest` | `PerformanceTest/` | NBomber scenarios |
 | `ChaosTest` | `ChaosTest/` | Chaos experiments + nightly runner |
 | `fuzzing/` | `fuzzing/` | RESTler DAST config |
 | `deploy/` | `deploy/` | docker-compose, CloudFormation, Grafana |
-| `scripts/` | `scripts/` | Coverage check, quality metrics, deploy/destroy |
+| `scripts/` | `scripts/` | Coverage check, quality metrics, drift guards, deploy/destroy |
+| `docs/` | `docs/` | Catálogo canónico de endpoints (`endpoints.md`, 56 filas) |
+| `.opencode/` | `.opencode/` | Sub-agentes (`agents/`) + skills (`skills/`, 48 con `drift-guards`) |
 | `.github/` | `.github/` | CI/CD workflows, Dependabot, PR template |
 | `.semgrep/` | `.semgrep/` | Custom SAST rules |

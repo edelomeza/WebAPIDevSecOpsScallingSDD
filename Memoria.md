@@ -512,6 +512,11 @@
 - Nueva: `operations/drift-guards` (dueña del patrón canónico + extractor + job CI; guards vigentes: `check_endpoints`).
 - Verificación: `critic PASS` antes del commit.
 
+## AGENTS.md sincronizado con la realidad 03-18 (2026-10-09, rama `phase03.11`)
+- 10 fixes: convención legacy medida en §1 (NO PascalCase puro), banner fase 03 retirado, `ContractTest` en comandos, orden CI real (`critic→endpoints→contract→semgrep`), `check_endpoints`+`critic` en §4, Contract por captura (Pact→fase 10), semgrep sin `--metrics=off`, quirks `ContractTest` + `analyzer-quickref`, §11 con 3 agentes + `drift-guards`, structure (`docs/`, `.opencode/`, `ContractTest` real).
+- §3 +2 límites (no PascalCase puro, no duplicar tablas vivas). `constitution.md` raíz no se crea (opción A: la canónica vive en `specs/phase-00-constitution/`).
+- Verificación: solo `.md`; `critic PASS` antes del commit.
+
 ## Sub-agentes para fase 04: 2 updates + 1 nuevo (2026-10-09, rama `phase03.11`)
 - `slice-scaffolder`: `last-synced` al día + variante swap fake→real (precedente `03-09`: `grep NOTE`, re-Stryker, waiver) + enlaces a skills nuevas (`04-totp-provisioning`, `03-errors-middleware`, `drift-guards`).
 - `security-reviewer`: `last-synced` al día + 5 checks fase 04 (JWT estrictos, anti-degradación de hash, rate-limit con fila `04-04`, headers/CORS, secretos en logs); WARN hasta ejecutar su spec, FAIL desde su merge.
