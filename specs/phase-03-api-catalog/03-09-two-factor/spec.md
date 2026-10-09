@@ -67,7 +67,8 @@ rama `error` (2026-10-08).
   (Database/ProviderStates/Race/CacheFallback) no ejecutadas aquí.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (pendiente de revisor).
-- **Revisores:** —
-- **Fecha:** 2026-10-08
-- **Detalle:** implementado en rama `error`; verificar PR + checklist.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario
+- **Fecha:** 2026-10-09
+- **Detalle:** implementado y mergeado en PR #13; waiver critic `Secret`
+  enrollment documentado en Memoria.

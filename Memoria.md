@@ -410,8 +410,9 @@
   ±1), `TwoFactorSecretProtector` (DataProtection `"TwoFactor"`),
   `TwoFactorService`, `TwoFactorController` (`api/v1/two-factor`), DTOs +
   único `TwoFactorVerifyRequestValidator`, `stryker-0309.json`.
-- Decisiones: payload medido 155 < `nvarchar(200)` (sin migración); mensajes
-  internos de setup distintos con 401 idéntico en controlador; `RemoveAsync`
+- Decisiones: payload medido 155 < `nvarchar(200)` (sin migración); `SetupAsync`
+  retorna null ante id inválido/ausente (sin try/catch en controller, canónico
+  03-16; 401 idéntico); `RemoveAsync`
   de `lockout:` en success eliminado (inaccesible: con lockout verify retorna
   antes); `new TwoFactorResult{}` en éxito es equivalente conocido
   (`Enabled=0`); `catch (FormatException)` eliminado (OtpNet solo lanza
@@ -429,3 +430,12 @@
   Refactor post-critic: `SetupAsync` retorna null (sin try/catch en controller,
   canónico 03-16) + NOTE `(prod)` fusionado a `(03-09)` → critic solo ese FAIL;
   Stryker re-corido tras el refactor.
+
+## Cierre PR #13 error mergeado a main (2026-10-09)
+- Merge `0b1dc99` (PR #13 `error` → `main`): 03-09 TwoFactor T1 real (`82b13fb`).
+- `main` local sincronizado en `0b1dc99` + build 0/0 + UnitTest 275/275 en `main`.
+- Spec `03-09` firmada a ✅ Aprobado (@usuario, 09-Oct-2026); slice 03-09 cerrado
+  por completo (waiver critic `Secret` enrollment documentado; diferidos NOTE
+  04-01/04-02/04-04).
+- Ramas `error` local y `origin/error` eliminadas tras el merge (a petición del
+  usuario; las `phase03.*` se conservan).
