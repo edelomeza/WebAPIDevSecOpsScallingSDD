@@ -49,24 +49,26 @@ namespace WebAPIDevSecOpsScallingSDD.Services
         // NOTE (04-02): la revocación real vive más que 120s; CacheService limita el TTL a 120s.
         private static readonly TimeSpan BlacklistTtl = TimeSpan.FromSeconds(120);
 
-        // NOTE (04-01): expiración real del refresh (p. ej. 7-30 días) + JWT HS256; hoy opaco temporal.
+        // (04-01) Refresh 7d vigente; el TTL definitivo de revocación vive en 04-02.
         private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(7);
 
         private readonly AppDbContext _db;
         private readonly ICacheService _cache;
+        private readonly IJwtTokenService _jwt;
 
-        public RefreshTokenService(AppDbContext db, ICacheService cache)
+        public RefreshTokenService(AppDbContext db, ICacheService cache, IJwtTokenService jwt)
         {
             ArgumentNullException.ThrowIfNull(db);
             ArgumentNullException.ThrowIfNull(cache);
+            ArgumentNullException.ThrowIfNull(jwt);
             _db = db;
             _cache = cache;
+            _jwt = jwt;
         }
 
         public async Task<RefreshPair> CreateAsync(int userId, CancellationToken cancellationToken = default)
         {
-            // NOTE (04-01): token de acceso opaco temporal; reemplazar por JWT HS256 real.
-            var access = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            var access = _jwt.CreateAccessToken(userId);
             var refreshPlano = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var now = DateTime.UtcNow;
             _db.SegRefreshTokens.Add(new SegRefreshToken
@@ -96,8 +98,7 @@ namespace WebAPIDevSecOpsScallingSDD.Services
                 return new RefreshResult { Status = RefreshStatus.Invalid };
             }
 
-            // NOTE (04-01): token de acceso opaco temporal; reemplazar por JWT HS256 real.
-            var newAccess = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            var newAccess = _jwt.CreateAccessToken(current.idSegUsuario);
             var newRefreshPlano = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var newHash = ComputeHash(newRefreshPlano);
             var now = DateTime.UtcNow;
@@ -157,7 +158,7 @@ namespace WebAPIDevSecOpsScallingSDD.Services
             var jti = (jtiClaim ?? string.Empty).Trim();
             if (jti.Length == 0)
             {
-                // NOTE (04-01): fallback opaco; con JWT real el jti siempre viene del claim.
+                // (04-01) Fallback defensivo: con JWT el jti siempre viene del claim; sin claim se deriva del hash.
                 var clean = (refreshPlano ?? string.Empty).Trim();
                 if (clean.Length == 0 || !IsHex(clean))
                 {
