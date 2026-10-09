@@ -18,7 +18,7 @@ namespace UnitTest.Login
         public async Task NullRequestThrowsArgumentNull()
         {
             await using var context = CreateContext();
-            var service = new LoginService(context, new FakeCacheService(), new FakeSegUsuarioPasswordHasher());
+            var service = CreateService(context, new FakeCacheService(), new FakeSegUsuarioPasswordHasher(), TestTimeProvider.Fixed());
 
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.AuthenticateAsync(null!));
         }
@@ -29,10 +29,12 @@ namespace UnitTest.Login
             var cache = new FakeCacheService();
             var hasher = new FakeSegUsuarioPasswordHasher();
             using var context = CreateContext();
+            var store = new EfLoginLockoutStore(context, TimeProvider.System);
 
-            Assert.Throws<ArgumentNullException>(() => new LoginService(null!, cache, hasher));
-            Assert.Throws<ArgumentNullException>(() => new LoginService(context, null!, hasher));
-            Assert.Throws<ArgumentNullException>(() => new LoginService(context, cache, null!));
+            Assert.Throws<ArgumentNullException>(() => new LoginService(null!, cache, hasher, store));
+            Assert.Throws<ArgumentNullException>(() => new LoginService(context, null!, hasher, store));
+            Assert.Throws<ArgumentNullException>(() => new LoginService(context, cache, null!, store));
+            Assert.Throws<ArgumentNullException>(() => new LoginService(context, cache, hasher, null!));
         }
 
         [Fact]
@@ -48,7 +50,8 @@ namespace UnitTest.Login
                 strPWD = hasher.Hash(Password),
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            context.ChangeTracker.Clear();
+            var service = CreateService(context, cache, hasher, TestTimeProvider.Fixed());
 
             await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = "Mala1" });
             await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = "Mala2" });
@@ -56,7 +59,10 @@ namespace UnitTest.Login
 
             Assert.Equal(LoginStatus.Authenticated, result.Status);
             Assert.False(string.IsNullOrEmpty(result.Token));
-            Assert.Equal(0, await cache.GetAsync<int>("attempts:", "Ana"));
+            var row = await context.SegBloqueos.AsNoTracking().FirstOrDefaultAsync(e => e.strNombre == "Ana");
+            Assert.NotNull(row);
+            Assert.Equal(0, row.intIntentosFallidos);
+            Assert.Null(row.dteBloqueoHasta);
         }
 
         [Fact]
@@ -71,7 +77,7 @@ namespace UnitTest.Login
                 strPWD = hasher.Hash(Password),
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, new FakeCacheService(), hasher);
+            var service = CreateService(context, new FakeCacheService(), hasher, TestTimeProvider.Fixed());
 
             var unknown = await service.AuthenticateAsync(new LoginRequest { strNombre = "Nadie", strPasswordPlano = Password });
             var wrong = await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = "Mala1" });
@@ -83,11 +89,11 @@ namespace UnitTest.Login
         }
 
         [Fact]
-        public async Task BlankCredentialsReturnInvalidWithoutQueryingCache()
+        public async Task BlankCredentialsReturnInvalidWithoutSideEffects()
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new LoginService(context, cache, new FakeSegUsuarioPasswordHasher());
+            var service = CreateService(context, cache, new FakeSegUsuarioPasswordHasher(), TestTimeProvider.Fixed());
 
             var blankName = await service.AuthenticateAsync(new LoginRequest { strNombre = "   ", strPasswordPlano = Password });
             var blankPassword = await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = string.Empty });
@@ -95,11 +101,13 @@ namespace UnitTest.Login
             Assert.Equal(LoginStatus.InvalidCredentials, blankName.Status);
             Assert.Equal(LoginStatus.InvalidCredentials, blankPassword.Status);
             Assert.Empty(cache.Keys);
+            Assert.Empty(context.SegBloqueos);
         }
 
         [Fact]
-        public async Task FiveFailuresThenLockedOut()
+        public async Task FiveFailuresThenLockedOutPersistently()
         {
+            var now = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
             var cache = new FakeCacheService();
             var hasher = new FakeSegUsuarioPasswordHasher();
             await using var context = CreateContext();
@@ -110,7 +118,7 @@ namespace UnitTest.Login
                 strPWD = hasher.Hash(Password),
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = CreateService(context, cache, hasher, new TestTimeProvider(now));
 
             for (var i = 0; i < 5; i++)
             {
@@ -122,8 +130,11 @@ namespace UnitTest.Login
 
             Assert.Equal(LoginStatus.LockedOut, locked.Status);
             Assert.Null(locked.Token);
-            Assert.Contains(cache.Keys, key => key == "lockout:Ana");
-            Assert.Equal(0, await cache.GetAsync<int>("attempts:", "Ana"));
+            var row = await context.SegBloqueos.AsNoTracking().FirstOrDefaultAsync(e => e.strNombre == "Ana");
+            Assert.NotNull(row);
+            Assert.Equal(now.UtcDateTime + TimeSpan.FromMinutes(15), row.dteBloqueoHasta);
+            Assert.DoesNotContain(cache.Keys, key => key.StartsWith("lockout:", StringComparison.Ordinal));
+            Assert.DoesNotContain(cache.Keys, key => key.StartsWith("attempts:", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -131,7 +142,7 @@ namespace UnitTest.Login
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new LoginService(context, cache, new FakeSegUsuarioPasswordHasher());
+            var service = CreateService(context, cache, new FakeSegUsuarioPasswordHasher(), TestTimeProvider.Fixed());
 
             for (var i = 0; i < 5; i++)
             {
@@ -142,39 +153,14 @@ namespace UnitTest.Login
             var locked = await service.AuthenticateAsync(new LoginRequest { strNombre = "Fantasma", strPasswordPlano = "Mala" });
 
             Assert.Equal(LoginStatus.LockedOut, locked.Status);
+            Assert.NotNull(await context.SegBloqueos.AsNoTracking().FirstOrDefaultAsync(e => e.strNombre == "Fantasma"));
         }
 
         [Fact]
-        public async Task NullCredentialsReturnInvalidWithoutQueryingCache()
+        public async Task LockoutExpiresAfter15Minutes()
         {
-            var cache = new FakeCacheService();
-            await using var context = CreateContext();
-            var service = new LoginService(context, cache, new FakeSegUsuarioPasswordHasher());
-
-            var nullName = await service.AuthenticateAsync(new LoginRequest { strNombre = null!, strPasswordPlano = Password });
-            var nullPassword = await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = null! });
-
-            Assert.Equal(LoginStatus.InvalidCredentials, nullName.Status);
-            Assert.Equal(LoginStatus.InvalidCredentials, nullPassword.Status);
-            Assert.Empty(cache.Keys);
-        }
-
-        [Fact]
-        public void CtorComputesDummyHashFromFixedSeed()
-        {
-            using var context = CreateContext();
-            var hasher = new RecordingHasher();
-
-            _ = new LoginService(context, new FakeCacheService(), hasher);
-
-            Assert.Single(hasher.HashedInputs);
-            Assert.Equal("login-anti-enumeration-dummy", hasher.HashedInputs[0]);
-        }
-
-        [Fact]
-        public async Task LockoutUsesExpectedKeysAndTtl()
-        {
-            var cache = new FakeCacheService();
+            var start = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
+            var clock = new TestTimeProvider(start);
             var hasher = new FakeSegUsuarioPasswordHasher();
             await using var context = CreateContext();
             context.SegUsuarios.Add(new UsuarioModel
@@ -184,16 +170,190 @@ namespace UnitTest.Login
                 strPWD = hasher.Hash(Password),
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = CreateService(context, new FakeCacheService(), hasher, clock);
 
-            await service.AuthenticateAsync(new LoginRequest { strNombre = "Key", strPasswordPlano = "Mala" });
+            for (var i = 0; i < 5; i++)
+            {
+                await service.AuthenticateAsync(new LoginRequest { strNombre = "Key", strPasswordPlano = "Mala" });
+            }
 
-            Assert.Contains(cache.Keys, key => key == "attempts:Key");
-            Assert.All(cache.Ttls, ttl => Assert.Equal(TimeSpan.FromSeconds(120), ttl));
+            clock.Advance(TimeSpan.FromMinutes(14) + TimeSpan.FromSeconds(59));
+            var stillLocked = await service.AuthenticateAsync(new LoginRequest { strNombre = "Key", strPasswordPlano = Password });
+            Assert.Equal(LoginStatus.LockedOut, stillLocked.Status);
+
+            clock.Advance(TimeSpan.FromSeconds(2));
+            var released = await service.AuthenticateAsync(new LoginRequest { strNombre = "Key", strPasswordPlano = Password });
+            Assert.Equal(LoginStatus.Authenticated, released.Status);
         }
 
         [Fact]
-        public async Task ReadsDoNotTrackEntities()
+        public async Task SingleFailureAfterExpiryRearmsInsteadOfRelocking()
+        {
+            var start = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
+            var clock = new TestTimeProvider(start);
+            var hasher = new FakeSegUsuarioPasswordHasher();
+            await using var context = CreateContext();
+            context.SegUsuarios.Add(new UsuarioModel
+            {
+                strNombre = "Rearme",
+                strCorreoElectronico = "rearme@test.local",
+                strPWD = hasher.Hash(Password),
+            });
+            await context.SaveChangesAsync();
+            var service = CreateService(context, new FakeCacheService(), hasher, clock);
+
+            for (var i = 0; i < 5; i++)
+            {
+                await service.AuthenticateAsync(new LoginRequest { strNombre = "Rearme", strPasswordPlano = "Mala" });
+            }
+
+            clock.Advance(TimeSpan.FromMinutes(15) + TimeSpan.FromSeconds(1));
+            var rearmed = await service.AuthenticateAsync(new LoginRequest { strNombre = "Rearme", strPasswordPlano = "Mala" });
+            Assert.Equal(LoginStatus.InvalidCredentials, rearmed.Status);
+
+            var released = await service.AuthenticateAsync(new LoginRequest { strNombre = "Rearme", strPasswordPlano = Password });
+            Assert.Equal(LoginStatus.Authenticated, released.Status);
+        }
+
+        [Fact]
+        public async Task ExpiredLockoutRelocksAfterFiveMoreFailures()
+        {
+            var start = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
+            var clock = new TestTimeProvider(start);
+            var hasher = new FakeSegUsuarioPasswordHasher();
+            await using var context = CreateContext();
+            context.SegUsuarios.Add(new UsuarioModel
+            {
+                strNombre = "Rebloqueo",
+                strCorreoElectronico = "rebloqueo@test.local",
+                strPWD = hasher.Hash(Password),
+            });
+            await context.SaveChangesAsync();
+            var service = CreateService(context, new FakeCacheService(), hasher, clock);
+
+            for (var i = 0; i < 5; i++)
+            {
+                await service.AuthenticateAsync(new LoginRequest { strNombre = "Rebloqueo", strPasswordPlano = "Mala" });
+            }
+
+            clock.Advance(TimeSpan.FromMinutes(15) + TimeSpan.FromSeconds(1));
+            for (var i = 0; i < 5; i++)
+            {
+                var rearmed = await service.AuthenticateAsync(new LoginRequest { strNombre = "Rebloqueo", strPasswordPlano = "Mala" });
+                Assert.Equal(LoginStatus.InvalidCredentials, rearmed.Status);
+            }
+
+            var relocked = await service.AuthenticateAsync(new LoginRequest { strNombre = "Rebloqueo", strPasswordPlano = Password });
+            Assert.Equal(LoginStatus.LockedOut, relocked.Status);
+        }
+
+        [Fact]
+        public async Task FailureExactlyAtExpiryRearmsInsteadOfRelocking()
+        {
+            var start = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
+            var clock = new TestTimeProvider(start);
+            var hasher = new FakeSegUsuarioPasswordHasher();
+            await using var context = CreateContext();
+            context.SegUsuarios.Add(new UsuarioModel
+            {
+                strNombre = "ExactaFallo",
+                strCorreoElectronico = "exactafallo@test.local",
+                strPWD = hasher.Hash(Password),
+            });
+            await context.SaveChangesAsync();
+            var service = CreateService(context, new FakeCacheService(), hasher, clock);
+
+            for (var i = 0; i < 5; i++)
+            {
+                await service.AuthenticateAsync(new LoginRequest { strNombre = "ExactaFallo", strPasswordPlano = "Mala" });
+            }
+
+            clock.Advance(TimeSpan.FromMinutes(15));
+            var boundary = await service.AuthenticateAsync(new LoginRequest { strNombre = "ExactaFallo", strPasswordPlano = "Mala" });
+            Assert.Equal(LoginStatus.InvalidCredentials, boundary.Status);
+
+            var released = await service.AuthenticateAsync(new LoginRequest { strNombre = "ExactaFallo", strPasswordPlano = Password });
+            Assert.Equal(LoginStatus.Authenticated, released.Status);
+        }
+
+        [Fact]
+        public async Task NullCredentialsReturnInvalidWithoutSideEffects()
+        {
+            var cache = new FakeCacheService();
+            await using var context = CreateContext();
+            var service = CreateService(context, cache, new FakeSegUsuarioPasswordHasher(), TestTimeProvider.Fixed());
+
+            var nullName = await service.AuthenticateAsync(new LoginRequest { strNombre = null!, strPasswordPlano = Password });
+            var nullPassword = await service.AuthenticateAsync(new LoginRequest { strNombre = "Ana", strPasswordPlano = null! });
+
+            Assert.Equal(LoginStatus.InvalidCredentials, nullName.Status);
+            Assert.Equal(LoginStatus.InvalidCredentials, nullPassword.Status);
+            Assert.Empty(cache.Keys);
+            Assert.Empty(context.SegBloqueos);
+        }
+
+        [Fact]
+        public void CtorComputesDummyHashFromFixedSeed()
+        {
+            using var context = CreateContext();
+            var hasher = new RecordingHasher();
+
+            _ = CreateService(context, new FakeCacheService(), hasher, TimeProvider.System);
+
+            Assert.Single(hasher.HashedInputs);
+            Assert.Equal("login-anti-enumeration-dummy", hasher.HashedInputs[0]);
+        }
+
+        [Fact]
+        public void LockoutStoreNullDependenciesThrowArgumentNull()
+        {
+            using var context = CreateContext();
+            var clock = TestTimeProvider.Fixed();
+
+            Assert.Throws<ArgumentNullException>(() => new EfLoginLockoutStore(null!, clock));
+            Assert.Throws<ArgumentNullException>(() => new EfLoginLockoutStore(context, null!));
+        }
+
+        [Fact]
+        public async Task LockoutStoreNullNameThrowsArgumentNull()
+        {
+            await using var context = CreateContext();
+            var store = new EfLoginLockoutStore(context, TestTimeProvider.Fixed());
+
+            await Assert.ThrowsAsync<ArgumentNullException>(() => store.IsLockedAsync(null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => store.RecordFailureAsync(null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => store.ResetAsync(null!));
+        }
+
+        [Fact]
+        public async Task LockReleasesExactlyAtExpiry()
+        {
+            var start = new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
+            var clock = new TestTimeProvider(start);
+            var hasher = new FakeSegUsuarioPasswordHasher();
+            await using var context = CreateContext();
+            context.SegUsuarios.Add(new UsuarioModel
+            {
+                strNombre = "Exacta",
+                strCorreoElectronico = "exacta@test.local",
+                strPWD = hasher.Hash(Password),
+            });
+            await context.SaveChangesAsync();
+            var service = CreateService(context, new FakeCacheService(), hasher, clock);
+
+            for (var i = 0; i < 5; i++)
+            {
+                await service.AuthenticateAsync(new LoginRequest { strNombre = "Exacta", strPasswordPlano = "Mala" });
+            }
+
+            clock.Advance(TimeSpan.FromMinutes(15));
+            var released = await service.AuthenticateAsync(new LoginRequest { strNombre = "Exacta", strPasswordPlano = Password });
+
+            Assert.Equal(LoginStatus.Authenticated, released.Status);
+        }
+
+        [Fact]
+        public async Task SuccessfulReadLeavesNoTrackedChanges()
         {
             var hasher = new FakeSegUsuarioPasswordHasher();
             await using var context = CreateContext();
@@ -205,12 +365,16 @@ namespace UnitTest.Login
             });
             await context.SaveChangesAsync();
             context.ChangeTracker.Clear();
-            var service = new LoginService(context, new FakeCacheService(), hasher);
+            var service = CreateService(context, new FakeCacheService(), hasher, TestTimeProvider.Fixed());
 
             await service.AuthenticateAsync(new LoginRequest { strNombre = "Track", strPasswordPlano = Password });
-            await service.AuthenticateAsync(new LoginRequest { strNombre = "Track", strPasswordPlano = "Mala" });
 
             Assert.Empty(context.ChangeTracker.Entries());
+        }
+
+        private static LoginService CreateService(AppDbContext context, FakeCacheService cache, ISegUsuarioPasswordHasher hasher, TimeProvider clock)
+        {
+            return new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, clock));
         }
 
         private static AppDbContext CreateContext()
@@ -219,6 +383,25 @@ namespace UnitTest.Login
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
             return new AppDbContext(options);
+        }
+
+        private sealed class TestTimeProvider : TimeProvider
+        {
+            private DateTimeOffset _now;
+
+            public TestTimeProvider(DateTimeOffset now)
+            {
+                _now = now;
+            }
+
+            public static TestTimeProvider Fixed()
+            {
+                return new TestTimeProvider(new DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero));
+            }
+
+            public override DateTimeOffset GetUtcNow() => _now;
+
+            public void Advance(TimeSpan delta) => _now += delta;
         }
 
         private sealed class RecordingHasher : ISegUsuarioPasswordHasher
@@ -236,6 +419,11 @@ namespace UnitTest.Login
             public bool Verify(string plano, string hash)
             {
                 return _inner.Verify(plano, hash);
+            }
+
+            public bool NeedsRehash(string hash)
+            {
+                return _inner.NeedsRehash(hash);
             }
         }
 

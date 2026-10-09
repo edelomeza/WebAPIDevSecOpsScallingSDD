@@ -215,8 +215,9 @@ Rules learned the hard way:
   PascalCase suffix (`idCliCliente`), rest PascalCase (`RowVersion`) —
   measured from the wire in 03-18 after pure PascalCase failed the test.
 - **Cache TTL capped at 120s** (`CacheService` throws above 2 min), so the
-  2FA temp and lockout use 120s with `NOTE (04-02)` for the real 5 min /
-  15 min values.
+  2FA temp uses 120s with `NOTE (04-02)` for the real 5 min value; login
+  lockout is persistent since `04-02` (table `SegBloqueo`, 15 min, outside
+  the ephemeral cache).
 - **Temp key `cache:login2fa:{hex}`**: hex (not Base64) so issued temps can
   never contain `CacheService` forbidden patterns
   (`password/secret/token`); attacker-controlled temps are hex-gated to a
@@ -224,8 +225,9 @@ Rules learned the hard way:
 - **Anti-enumeration**: identical 401 bodies for unknown user vs wrong
   password (and bad vs unknown temp), plus dummy-hash/dummy-TOTP verification
   on misses; secrets never in DTOs, cache keys, or logs.
-- **Lockout after 5 failures** (`attempts:{user}` counter +
-  `lockout:{user}` flag); 1–5 → 401/401, next → 423.
+- **Lockout after 5 failures** (persistent `SegBloqueo` row per name,
+  15 min, since `04-02`; 2FA/2FA-verify paths still use `attempts:/lockout:`
+  cache keys); 1–5 → 401/401, next → 423.
 - Naming uses `2Fa` (not `2fa`) to satisfy Sonar S101.
 - **Opaque refresh/logout** (`NOTE 04-01` → real HS256 JWT): refresh tokens
   are SHA-256 hex persisted with rotation link (`strReplacedByTokenHash`)

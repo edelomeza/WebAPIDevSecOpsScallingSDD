@@ -1,0 +1,12 @@
+{
+  "stryker-config": {
+    "project": "WebAPIDevSecOpsScallingSDD/WebAPIDevSecOpsScallingSDD.csproj",
+    "test-projects": ["UnitTest/UnitTest.csproj"],
+    "mutate": ["**/SegUsuarioPasswordHasher.cs", "**/LoginLockoutStore.cs", "**/LoginService.cs"],
+    "test-case-filter": "FullyQualifiedName~UnitTest.",
+    "ignore-mutations": ["Boolean"],
+    "thresholds": { "break": 80, "low": 80, "high": 90 },
+    "reporters": ["ClearText", "Json"],
+    "configuration": "Release"
+  }
+}

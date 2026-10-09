@@ -100,7 +100,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             await login.AuthenticateAsync(new LoginRequest { strNombre = "Ana2fa", strPasswordPlano = "Mala1" });
@@ -135,7 +135,7 @@ namespace UnitTest.Login2Fa
             });
             await context.SaveChangesAsync();
             var cache = new FakeCacheService();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Beto2fa", strPasswordPlano = Password });
@@ -163,7 +163,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Cid2fa", strPasswordPlano = Password });
@@ -198,7 +198,7 @@ namespace UnitTest.Login2Fa
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, totp, CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Eva2fa", strPasswordPlano = Password });
@@ -229,7 +229,7 @@ namespace UnitTest.Login2Fa
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Gil2fa", strPasswordPlano = Password });
@@ -259,7 +259,7 @@ namespace UnitTest.Login2Fa
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Ian2fa", strPasswordPlano = Password });
@@ -287,7 +287,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Key2fa", strPasswordPlano = Password });
@@ -313,7 +313,7 @@ namespace UnitTest.Login2Fa
             await context.SaveChangesAsync();
             context.ChangeTracker.Clear();
             var cache = new FakeCacheService();
-            var login = new LoginService(context, cache, hasher);
+            var login = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
             var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Track2fa", strPasswordPlano = Password });

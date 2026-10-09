@@ -29,7 +29,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = "JBSWY3DPEHPK3PXP",
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
 
             var result = await service.AuthenticateAsync(new LoginRequest { strNombre = "Dos2fa", strPasswordPlano = Password });
 
@@ -55,7 +55,7 @@ namespace UnitTest.Login2Fa
                 strPWD = hasher.Hash(Password),
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
 
             var result = await service.AuthenticateAsync(new LoginRequest { strNombre = "Uno2fa", strPasswordPlano = Password });
 
@@ -80,7 +80,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = "JBSWY3DPEHPK3PXP",
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
 
             await service.AuthenticateAsync(new LoginRequest { strNombre = "Tres2fa", strPasswordPlano = "Mala1" });
             var result = await service.AuthenticateAsync(new LoginRequest { strNombre = "Tres2fa", strPasswordPlano = Password });
@@ -104,7 +104,7 @@ namespace UnitTest.Login2Fa
                 str2FASecreto = "JBSWY3DPEHPK3PXP",
             });
             await context.SaveChangesAsync();
-            var service = new LoginService(context, cache, hasher);
+            var service = new LoginService(context, cache, hasher, new EfLoginLockoutStore(context, TimeProvider.System));
 
             var result = await service.AuthenticateAsync(new LoginRequest { strNombre = "Cuatro2fa", strPasswordPlano = "Mala1" });
 
