@@ -65,6 +65,14 @@ jobs:
       - shell: pwsh
         run: ./scripts/critic-guardrails.ps1
 
+  endpoints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - shell: pwsh
+        run: ./scripts/check_endpoints.ps1
+
   semgrep:
     runs-on: ubuntu-latest
     timeout-minutes: 15
