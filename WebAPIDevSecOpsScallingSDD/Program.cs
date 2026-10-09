@@ -53,6 +53,10 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddAuthorization();
             services.AddAuthorizationBuilder().AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
             services.AddMemoryCache();
+            // NOTE (03-09): AddDataProtection sin persistencia usa keyring efímero — válido en dev/test; en prod persistir claves (fuera de 03-09).
+            services.AddDataProtection();
+            services.AddScoped<Services.ITwoFactorSecretProtector, Services.TwoFactorSecretProtector>();
+            services.AddScoped<Services.ITotpProvisioner, Services.OtpNetTotpService>();
             services.AddScoped<Services.ICliClienteService, Services.CliClienteService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.CliClienteCreateDto>, Validators.CliClienteCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.CliClienteUpdateDto>, Validators.CliClienteUpdateValidator>();
@@ -72,9 +76,11 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<Services.ISegUsuarioPasswordHasher, Services.FakeSegUsuarioPasswordHasher>();
             services.AddScoped<Services.ILoginService, Services.LoginService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.LoginRequest>, Validators.LoginRequestValidator>();
-            services.AddScoped<Services.ITotpService, Services.FakeTotpService>();
+            services.AddScoped<Services.ITotpService, Services.OtpNetTotpService>();
             services.AddScoped<Services.ILogin2FaService, Services.Login2FaService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.Login2FaVerifyRequest>, Validators.Login2FaVerifyRequestValidator>();
+            services.AddScoped<Services.ITwoFactorService, Services.TwoFactorService>();
+            services.AddScoped<FluentValidation.IValidator<Dtos.TwoFactorVerifyRequest>, Validators.TwoFactorVerifyRequestValidator>();
             services.AddScoped<Services.IRefreshTokenService, Services.RefreshTokenService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.RefreshRequest>, Validators.RefreshRequestValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.LogoutRequest>, Validators.LogoutRequestValidator>();

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WebAPIDevSecOpsScallingSDD.Context;
+using WebAPIDevSecOpsScallingSDD.Services;
 
 namespace IntegrationTest.Login2Fa
 {
@@ -112,9 +113,10 @@ namespace IntegrationTest.Login2Fa
         {
             using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var protector = scope.ServiceProvider.GetRequiredService<ITwoFactorSecretProtector>();
             var user = await db.SegUsuarios.FirstAsync(e => e.strNombre == nombre).ConfigureAwait(false);
             user.bln2FAHabilitado = true;
-            user.str2FASecreto = "JBSWY3DPEHPK3PXP";
+            user.str2FASecreto = protector.Protect("JBSWY3DPEHPK3PXP");
             await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
@@ -174,6 +176,8 @@ namespace IntegrationTest.Login2Fa
                     options.DefaultAuthenticateScheme = "Test";
                     options.DefaultChallengeScheme = "Test";
                 }).AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
+                // Pin 03-07 a stub determinista; TOTP real solo en TwoFactor (03-09).
+                services.AddScoped<ITotpService, FakeTotpService>();
             }));
         }
     }

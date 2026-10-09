@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using WebAPIDevSecOpsScallingSDD.Context;
 using WebAPIDevSecOpsScallingSDD.Dtos;
@@ -16,11 +17,17 @@ namespace UnitTest.Login2Fa
         private const string TotpSecret = "JBSWY3DPEHPK3PXP";
         private const string ValidCode = "123456";
 
+        private static readonly IDataProtectionProvider TestProvider = DataProtectionProvider.Create("Test-Login2Fa-Shared");
+
+        private static TwoFactorSecretProtector CreateProtector() => new TwoFactorSecretProtector(TestProvider);
+
+        private static string ProtectSecret() => CreateProtector().Protect(TotpSecret);
+
         [Fact]
         public async Task NullRequestThrowsArgumentNull()
         {
             await using var context = CreateContext();
-            var service = new Login2FaService(context, new FakeCacheService(), new FakeTotpService());
+            var service = new Login2FaService(context, new FakeCacheService(), new FakeTotpService(), CreateProtector());
 
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.VerifyAsync(null!));
         }
@@ -30,11 +37,13 @@ namespace UnitTest.Login2Fa
         {
             var cache = new FakeCacheService();
             var totp = new FakeTotpService();
+            var protector = CreateProtector();
             using var context = CreateContext();
 
-            Assert.Throws<ArgumentNullException>(() => new Login2FaService(null!, cache, totp));
-            Assert.Throws<ArgumentNullException>(() => new Login2FaService(context, null!, totp));
-            Assert.Throws<ArgumentNullException>(() => new Login2FaService(context, cache, null!));
+            Assert.Throws<ArgumentNullException>(() => new Login2FaService(null!, cache, totp, protector));
+            Assert.Throws<ArgumentNullException>(() => new Login2FaService(context, null!, totp, protector));
+            Assert.Throws<ArgumentNullException>(() => new Login2FaService(context, cache, null!, protector));
+            Assert.Throws<ArgumentNullException>(() => new Login2FaService(context, cache, totp, null!));
         }
 
         [Fact]
@@ -42,7 +51,7 @@ namespace UnitTest.Login2Fa
         {
             var cache = new FakeCacheService();
             await using var context = CreateContext();
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var nullTemp = await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = null!, TotpCode = ValidCode });
             var nullCode = await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = "ABCDEF", TotpCode = null! });
@@ -66,7 +75,7 @@ namespace UnitTest.Login2Fa
         {
             var totp = new RecordingTotp();
             await using var context = CreateContext();
-            var service = new Login2FaService(context, new FakeCacheService(), totp);
+            var service = new Login2FaService(context, new FakeCacheService(), totp, CreateProtector());
 
             var result = await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = new string('A', 64), TotpCode = ValidCode });
 
@@ -88,11 +97,11 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "ana2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             await login.AuthenticateAsync(new LoginRequest { strNombre = "Ana2fa", strPasswordPlano = "Mala1" });
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Ana2fa", strPasswordPlano = Password });
@@ -122,12 +131,12 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "beto2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
             var cache = new FakeCacheService();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Beto2fa", strPasswordPlano = Password });
             var wrong = await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = issued.TempCode!, TotpCode = "000000" });
@@ -151,11 +160,11 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "cid2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Cid2fa", strPasswordPlano = Password });
             for (var i = 0; i < 5; i++)
@@ -185,12 +194,12 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "eva2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, totp);
+            var service = new Login2FaService(context, cache, totp, CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Eva2fa", strPasswordPlano = Password });
             context.SegUsuarios.Remove(user);
@@ -216,12 +225,12 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "gil2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Gil2fa", strPasswordPlano = Password });
             user.bln2FAHabilitado = false;
@@ -246,12 +255,12 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "ian2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             };
             context.SegUsuarios.Add(user);
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Ian2fa", strPasswordPlano = Password });
             user.str2FASecreto = null;
@@ -275,11 +284,11 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "key2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Key2fa", strPasswordPlano = Password });
             await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = issued.TempCode!, TotpCode = "000000" });
@@ -299,13 +308,13 @@ namespace UnitTest.Login2Fa
                 strCorreoElectronico = "track2fa@test.local",
                 strPWD = hasher.Hash(Password),
                 bln2FAHabilitado = true,
-                str2FASecreto = TotpSecret,
+                str2FASecreto = ProtectSecret(),
             });
             await context.SaveChangesAsync();
             context.ChangeTracker.Clear();
             var cache = new FakeCacheService();
             var login = new LoginService(context, cache, hasher);
-            var service = new Login2FaService(context, cache, new FakeTotpService());
+            var service = new Login2FaService(context, cache, new FakeTotpService(), CreateProtector());
 
             var issued = await login.AuthenticateAsync(new LoginRequest { strNombre = "Track2fa", strPasswordPlano = Password });
             await service.VerifyAsync(new Login2FaVerifyRequest { TempToken = issued.TempCode!, TotpCode = ValidCode });
