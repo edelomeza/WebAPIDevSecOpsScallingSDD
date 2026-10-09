@@ -400,3 +400,32 @@
 ## Push phase03.7 a origin (2026-10-08)
 - Incluye `0bf4a41` 03-09 T1 espec real (`task.md` 5+/3-: OtpNet +-1, DTOs/validators, `stryker-0309.json`, `SegUsuario`/`Program.cs`, diferidos NOTE 04-01/04-02/04-04) + 6 previos (Fase 1 + hardening critic + cierres PR #10/#11).
 - Solo markdown/spec, sin cambios de codigo (sin build/tests requeridos).
+
+## T1 — 03-09 TwoFactor ejecutado en rama `error` (2026-10-08)
+- Fases A–D con las 5 correcciones del análisis en plan mode: `ITotpProvisioner`
+  nueva (Fake intacto), prefijos `attempts:`/`lockout:` + llave `2fa:{userId}`,
+  `Login2FaService` desprotege antes de Verify, setup sin DTO/validador,
+  stubs controlables en unit + TOTP real solo en integración.
+- Nuevos: `OtpNetTotpService` (Otp.NET 1.4.1, `GenerateRandomKey(20)`, ventana
+  ±1), `TwoFactorSecretProtector` (DataProtection `"TwoFactor"`),
+  `TwoFactorService`, `TwoFactorController` (`api/v1/two-factor`), DTOs +
+  único `TwoFactorVerifyRequestValidator`, `stryker-0309.json`.
+- Decisiones: payload medido 155 < `nvarchar(200)` (sin migración); mensajes
+  internos de setup distintos con 401 idéntico en controlador; `RemoveAsync`
+  de `lockout:` en success eliminado (inaccesible: con lockout verify retorna
+  antes); `new TwoFactorResult{}` en éxito es equivalente conocido
+  (`Enabled=0`); `catch (FormatException)` eliminado (OtpNet solo lanza
+  `ArgumentException`, probado empíricamente).
+- Verificación: build 0/0; Unit 275/275 (+31), Security 62/62 (+2), Integration
+  TwoFactor 6/6 + Login2Fa 4/4 (Docker ausente: Testcontainers no ejecutables
+  aquí); Stryker 68.42% → 79.57% → 94.62% → **93.41%** final tras refactor
+  post-critic (break 80, 4 runs).
+- Spec/plan/task 03-09 retro-portados (Borrador con evidencia); `nuget.config`
+  suma `Otp.*`. Commiteado y pusheado en rama `error` (2026-10-08).
+- Post-cierre: critic `scripts/critic-guardrails.ps1` 1 FAIL restante
+  (`Secret` en `TwoFactorDtos.cs:5`) con waiver: el secreto de enrollment se
+  devuelve UNA vez por requerimiento 03-09 T1 (flujo TOTP estándar); jamás va
+  a logs/caché/DB en claro (tests `DoesNotContain` + protegido en reposo).
+  Refactor post-critic: `SetupAsync` retorna null (sin try/catch en controller,
+  canónico 03-16) + NOTE `(prod)` fusionado a `(03-09)` → critic solo ese FAIL;
+  Stryker re-corido tras el refactor.

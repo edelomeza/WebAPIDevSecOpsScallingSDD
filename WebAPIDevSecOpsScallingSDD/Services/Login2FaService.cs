@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -39,15 +40,18 @@ namespace WebAPIDevSecOpsScallingSDD.Services
         private readonly AppDbContext _db;
         private readonly ICacheService _cache;
         private readonly ITotpService _totp;
+        private readonly ITwoFactorSecretProtector _protector;
 
-        public Login2FaService(AppDbContext db, ICacheService cache, ITotpService totp)
+        public Login2FaService(AppDbContext db, ICacheService cache, ITotpService totp, ITwoFactorSecretProtector protector)
         {
             ArgumentNullException.ThrowIfNull(db);
             ArgumentNullException.ThrowIfNull(cache);
             ArgumentNullException.ThrowIfNull(totp);
+            ArgumentNullException.ThrowIfNull(protector);
             _db = db;
             _cache = cache;
             _totp = totp;
+            _protector = protector;
         }
 
         public async Task<Login2FaResult> VerifyAsync(Login2FaVerifyRequest request, CancellationToken cancellationToken = default)
@@ -86,7 +90,25 @@ namespace WebAPIDevSecOpsScallingSDD.Services
                 return new Login2FaResult { Status = Login2FaStatus.InvalidCredentials };
             }
 
-            if (!_totp.Verify(user.str2FASecreto, code))
+            string rawSecret;
+            try
+            {
+                rawSecret = _protector.Unprotect(user.str2FASecreto);
+            }
+            catch (CryptographicException)
+            {
+                _ = _totp.Verify("login2fa-dummy", code);
+                await RegisterFailureAsync(nombre, cancellationToken).ConfigureAwait(false);
+                return new Login2FaResult { Status = Login2FaStatus.InvalidCredentials };
+            }
+            catch (ArgumentException)
+            {
+                _ = _totp.Verify("login2fa-dummy", code);
+                await RegisterFailureAsync(nombre, cancellationToken).ConfigureAwait(false);
+                return new Login2FaResult { Status = Login2FaStatus.InvalidCredentials };
+            }
+
+            if (!_totp.Verify(rawSecret, code))
             {
                 await RegisterFailureAsync(nombre, cancellationToken).ConfigureAwait(false);
                 return new Login2FaResult { Status = Login2FaStatus.InvalidCredentials };
