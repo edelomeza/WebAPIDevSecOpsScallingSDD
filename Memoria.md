@@ -484,3 +484,12 @@
 - `scripts/check_endpoints.ps1` nuevo (PS 5.1, sin dependencias): extrae `[HttpX]`+`[Route]` de los 17 controllers + `MapGet` de `Program.cs`, respeta placeholders `{idVenta:int}` al normalizar, exige fila `| VERBO | ruta |`; primer run cazó 3 gaps reales (placeholders + `/ping` no inventariado) → `OK (56 rutas)` tras fixes; job `endpoints` en `ci-pr.yml` (paralelo, `shell: pwsh`).
 - Verificación: script `OK exit 0` + `critic PASS (8 files) exit 0` + YAML parse OK; sin código de producto (sin build/tests).
 - Estado spec: 🚧 Borrador con evidencia (pendiente firma).
+
+## T1 — 03-18 JSON Contracts ejecutado, fixtures + test (2026-10-09, rama `phase03.11`)
+- `ContractTest/Fixtures/*.json` (14, fuente única): captura real del wire con `CONTRACT_CAPTURE=1` (`FixtureCaptureTests`: ping → usuarios/clientes/productos/estados → paged/autocomplete → login → refresh vía `IRefreshTokenService.CreateAsync` scoped → pedido → pago → venta → dashboard → 404; `IntegrationTest/Common/` no existe y no se crea).
+- `JsonContractTests` (existencia + convención + sin secretos): el primer run tumbó el "PascalCase estricto" del spec (`id`, `strNombre`, `bln2FAHabilitado`, `idCliCliente`) → convención real codificada en `IsConventional` (prefijos legacy + `id`/sufijo + resto PascalCase).
+- Correcciones: `VenPedidoPagoResponseDto`→`PagoResponseDto`, `Login2faVerifyResponse`→`Login2FaVerifyResponse`; PactNet + provider real + fixture 2FA diferidos a fase 10 (sin paquete `Pact*` hoy; TOTP real sin fake determinista).
+- Cableado: `ContractTest.csproj` (Mvc.Testing + TestHost + ProjectReference API + `NoWarn CA1515`), `ContractAuthHandler`, `xunit.runner.json` en serie; analizadores que mordieron: CA1515 + xUnit1030 (fixes del quickref).
+- CI: job `contract` nuevo en `ci-pr.yml` (InMemory, sin Docker); skill `testing-pact` engordada con la fase previa.
+- Verificación: build 0/0; ContractTest 4/4; critic PASS.
+- Estado spec: 🚧 Borrador con evidencia (pendiente firma; Pact/`Login2FaVerifyResponse` → fase 10).
