@@ -17,8 +17,9 @@ Suites: Unit, Integration, Security, Database, Contract, Mutation, Perf, Chaos.
 
 ## Pasos
 
-1. Definir cobertura objetivo por suite (conteos reales a 08-Oct-2026: unit 231, integration 82, security 59, database 2; crecer por slice, no fijar 600+/357/136 sin medir).
-2. Flakiness rules: `IntegrationTest/xunit.runner.json` en SERIE (`parallelizeTestCollections: false`, store InMemory compartido); FsCheck `.Trim()` + mismo casing (InMemory case-sensitive); seed determinista; todo test que cree datos los borra (`DELETE` + `RowVersion`) o usa `Guid` único por test; seeding directo vía `AppDbContext` scoped cuando no hay `POST`; no asertar `TotalCount==1` exacto en stores compartidos.
+1. Definir cobertura objetivo por suite (conteos reales a 09-Oct-2026: unit 289, integration 85 (+Errors 8/8), security 62, database 2; hito previo 08-Oct: 231/82/59/2; crecer por slice, no fijar 600+/357/136 sin medir).
+2. Flakiness rules: `IntegrationTest/xunit.runner.json` en SERIE (`parallelizeTestCollections: false`, store InMemory compartido); FsCheck `.Trim()` + mismo casing (InMemory case-sensitive); seed determinista; todo test que cree datos los borra (`DELETE` + `RowVersion`) o usa `Guid` único por test; seeding directo vía `AppDbContext` scoped cuando no hay `POST`; no asertar `TotalCount==1` exacto en stores compartidos (dashboard: asserts `>=1`).
+3. Estrategia `03-09` TwoFactor: stubs controlables en unit vs Otp.NET real solo en integración. Estrategia `03-16` Errors: factories en `Staging`, `Production` con override `UseInMemoryDatabase=true`, sondas `probe` gateadas `EnableProviderStates`+no-prod.
 3. `--blame-crash --blame-hang-timeout 10m` en CI.
 4. Pact con proceso real + puerto libre.
 5. NBomber con `WithMaxFailCount` en caos.

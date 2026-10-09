@@ -25,7 +25,7 @@ Al crear `03-10` y `03-11`.
 
 ## Checklist
 
-Tx única para venta+stock; restore stock en delete; ownership 403 en detalle.
+Tx única para venta+stock; restore stock en delete; ownership 403 en detalle vía `throw ForbiddenAccessException` (`EnsureOwner`, canónico `03-16`, ver `phases/03-errors-middleware`); sin try/catch en controllers.
 
 ## Criterios de done
 
@@ -37,4 +37,4 @@ No descontar stock fuera de Tx; no olvidar ownership en detalle.
 
 ## Referencias
 
-`03-10`, `03-11`, `RaceConditionTests`.
+`03-10`, `03-11`, `RaceConditionTests`, `phases/03-errors-middleware`.

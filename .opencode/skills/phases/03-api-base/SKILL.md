@@ -22,6 +22,7 @@ Al definir la capa API antes de implementar endpoints.
 3. Crear `ExceptionHandlingMiddleware` con mapeo 403/404/409/400/408/500.
 4. Publicar catálogo consolidado de endpoints con método/ruta/auth/rate-limit.
 5. Proveer fixtures JSON request/response por endpoint.
+6. Canon `03-16` (detalle en `phases/03-errors-middleware`): `ErrorResponse {Error/Status/TraceId + Detail solo no-prod}`, `NotFound/ForbiddenAccessException`, middleware primero + fuera `UseExceptionHandler` no-Dev, purga try/catch en 8 controllers + `21 NotFound()→throw` + `EnsureOwner→403` (outlier `EmpEmpleado` FK `400→422`), sondas `probe/{timeout,error,forbidden}` gateadas `EnableProviderStates`+no-prod, `10` factories a `Staging`, Stryker `100%` (`stryker-0316.json`).
 
 ## Checklist
 
@@ -37,4 +38,4 @@ No mezclar PascalCase y camelCase; no try/catch ad-hoc.
 
 ## Referencias
 
-`03-00`, `03-16`, `03-17`, `03-18`, `Program.cs`.
+`03-00`, `03-16`, `03-17`, `03-18`, `Program.cs`, `phases/03-errors-middleware`, `operations/critic-guardrails`.

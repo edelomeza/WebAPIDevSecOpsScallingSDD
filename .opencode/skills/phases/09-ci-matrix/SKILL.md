@@ -24,6 +24,7 @@ Al definir o ajustar `ci-cd.yml` y workflows nightly.
 5. Semgrep: `semgrep scan --config=auto --config=.semgrep/semgrep.yaml --error` (SIN `--metrics=off`: `scan` lo rechaza, solo vale para `ci` con token).
 6. Reproducir NU1100 pristino en local: `dotnet restore --force --no-cache /p:RestorePackagesPath=<temp-vacia>` (la caché tibia oculta el fallo); mapear IDs exactos + transitivos (`Testcontainers` sin `.*`, `Pipelines.Sockets.Unofficial`, `SSH.NET`, `SharpZipLib`, `BouncyCastle.Cryptography`…).
 7. Jobs agregadores tolerantes + artifacts en pareja de majors.
+8. Job `critic` (Fase 1): paralelo sin `needs`, mismo SHA checkout, `shell: pwsh`, `exit 0/1`; PR template `3→8` checks; sub-agentes `slice-scaffolder`/`security-reviewer` (ver `operations/critic-guardrails`).
 
 ## Checklist
 
@@ -39,4 +40,4 @@ No renombrar steps sin parametrizar; no hardcodear thresholds.
 
 ## Referencias
 
-`09-06`, `.github/workflows/ci-cd.yml`.
+`09-06`, `.github/workflows/ci-cd.yml`, `operations/critic-guardrails`.

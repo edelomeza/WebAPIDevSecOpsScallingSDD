@@ -20,8 +20,9 @@ Al proteger endpoints y al auditar seguridad.
 1. Marcar cada endpoint con `[Authorize]` o `[Authorize(Policy = "AdminPolicy")]` (requiere rol `Admin`; es la policy real — `AdminOnly` no existe en código).
 2. Rate limiting diferido a `04-04`: registrar `NOTE (04-04)` por endpoint (policies objetivo: Login 5/5min, Login2faVerify 10/5min, Global 1000/min, Admin 200/min, ConcurrentWrites 10).
 3. Verificar claims (`NameIdentifier`/`sub` para ownership dif. `NOTE 04-01`; `role` para `AdminPolicy`).
-4. Matriz de tests probada: `Admin→2xx`, `User→403` con `AdminPolicy`, `User→200` en Bearer sin policy (desviación espejo `03-10/03-11`, no 403), anónimo→401 sin fugas.
-5. Revisar checklist ASVS L2 (anti-enumeration, secrets, SQLi, XSS, CSRF/CORS, JWT en logs).
+4. Matriz de tests probada: `Admin→2xx`, `User→403` con `AdminPolicy`, `User→200` en Bearer sin policy (desviación espejo `03-10/03-11`, no 403), anónimo→401 sin fugas (`Assert.DoesNotContain` del payload).
+5. Fila `api/v1/two-factor` (`03-09`, detalle en `phases/04-totp-provisioning`): `Setup/Verify/Remove` con auth explícita + rate `NOTE 04-04` + `401` idéntico; llaves `2fa:{userId}` + `attempts:/lockout:`.
+6. Revisar checklist ASVS L2 (anti-enumeration, secrets, SQLi, XSS, CSRF/CORS, JWT en logs).
 
 ## Checklist
 
@@ -42,4 +43,4 @@ Al proteger endpoints y al auditar seguridad.
 
 ## Referencias
 
-`04-04`, `04-05`, `CHECKLIST_PR.md`.
+`04-04`, `04-05`, `CHECKLIST_PR.md`, `phases/04-totp-provisioning`.

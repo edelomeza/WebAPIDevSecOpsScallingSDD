@@ -21,9 +21,10 @@ Spec del endpoint aprobada.
 2. DTOs Create/Update/Delete (`required`, `RowVersion`, `IReadOnlyList`).
 3. FluentValidation (`>0`, `NotEmpty`, `RuleForEach`).
 4. Servicio con cache-aside + eventos fake si aplica (`NOTE`).
-5. Controller con auth explícita + helper `ValidateAsync`.
+5. Controller con auth explícita + helper `ValidateAsync`. Post-`03-16`: sin try/catch de dominio (canon en `phases/03-errors-middleware`: `throw NotFound/Forbidden`, `EnsureOwner→403`); sondas `probe` gateadas; factories en `Staging`.
 6. Tests unit/integration/security + Stryker ≥80% + build restaurativo.
 7. Conciliar `spec/plan/task.md` + `Memoria.md` (`Borrador con evidencia`; firma solo con revisor indicado + PR).
+8. Fase 1: Fase A vía `slice-scaffolder` + gate `security-reviewer`/`operations/critic-guardrails` (nunca copiar reglas: solo enlazar `SKILL.md`).
 
 ## Checklist
 
