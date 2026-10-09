@@ -454,8 +454,9 @@
 - Verificación: build 0/0; Unit 289/289 (+14), Security 62/62, Integration
   Errors 8/8 (+37/37, 55/56 con solo Redis-Docker ambiental); Stryker **100%**
   (break 80, 1 run, `stryker-0316.json`); critic PASS (1 aviso GET-only).
-- Spec/plan/task 03-16 retro-portados (Borrador con evidencia). Commiteado y
+- Spec/plan/task 03-16 retro-portados. Commiteado y
   pusheado en rama `phase03.9` (2026-10-09).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia; merge PR #15).
 
 ## Cierre PR #15 phase03.9 mergeado a main (2026-10-09)
 - Merge `738ae13` (PR #15 `phase03.9` → `main`): 03-16 Errors T1 real (`8c484a5`).
@@ -477,13 +478,17 @@
 - `main` local sincronizado en `86af0ac` (fast-forward, working tree limpio).
 - Skills cerradas por completo en `main`: 47 `SKILL.md` (44 + 3 nuevas) con evidencia 03-15/03-09/03-16 + Fase 1.
 
+## Cierre PR #17 phase03.11 mergeado a main (2026-10-09)
+- Merge `8a497a6` (PR #17 `phase03.11` → `main`): 03-17 Endpoint Catalog opción B (`1008a10`: `docs/endpoints.md` 56 filas + `check_endpoints.ps1` + job `endpoints` + spec/task/plan).
+- Rama `phase03.11` local recreada desde el `main` actualizado (la anterior estaba 100% mergeada; working tree limpio, nada que arrastrar).
+
 ## T1 — 03-17 Endpoint Catalog ejecutado, opción B (2026-10-09, rama `phase03.11`)
 - `docs/endpoints.md` nuevo (56 filas: 7 auth/misc + 1 ping raíz + 3 `probe` solo no-prod + 31 CRUD/search/autocomplete + 14 ventas/saga; rate-limit como `NOTE 04-04`; nota `ErrorResponse` post-`03-16`).
 - Hallazgo del inventario: `GET /ping` raíz (texto `"pong"`, `Program.cs:25`) existe además de `GET /api/v1/ping` del controller; las sondas `probe/*` son minimal APIs en `Program.cs:217-223` (no hay `ProbeController`), gate `EnableProviderStates` + no-prod.
 - `spec.md` conciliado (6 correcciones: `AdminOnly→AdminPolicy`, `TwoFactorSetupRequest` eliminado — `setup` sin DTO —, `Usuario*→SegUsuario*`, rutas faltantes, rate `NOTE`, códigos `409/422/403`); `task.md`/`plan.md` reescritos a formato estándar; skill `09-ci-matrix` +1 job.
 - `scripts/check_endpoints.ps1` nuevo (PS 5.1, sin dependencias): extrae `[HttpX]`+`[Route]` de los 17 controllers + `MapGet` de `Program.cs`, respeta placeholders `{idVenta:int}` al normalizar, exige fila `| VERBO | ruta |`; primer run cazó 3 gaps reales (placeholders + `/ping` no inventariado) → `OK (56 rutas)` tras fixes; job `endpoints` en `ci-pr.yml` (paralelo, `shell: pwsh`).
 - Verificación: script `OK exit 0` + `critic PASS (8 files) exit 0` + YAML parse OK; sin código de producto (sin build/tests).
-- Estado spec: 🚧 Borrador con evidencia (pendiente firma).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia).
 
 ## T1 — 03-18 JSON Contracts ejecutado, fixtures + test (2026-10-09, rama `phase03.11`)
 - `ContractTest/Fixtures/*.json` (14, fuente única): captura real del wire con `CONTRACT_CAPTURE=1` (`FixtureCaptureTests`: ping → usuarios/clientes/productos/estados → paged/autocomplete → login → refresh vía `IRefreshTokenService.CreateAsync` scoped → pedido → pago → venta → dashboard → 404; `IntegrationTest/Common/` no existe y no se crea).
@@ -492,4 +497,9 @@
 - Cableado: `ContractTest.csproj` (Mvc.Testing + TestHost + ProjectReference API + `NoWarn CA1515`), `ContractAuthHandler`, `xunit.runner.json` en serie; analizadores que mordieron: CA1515 + xUnit1030 (fixes del quickref).
 - CI: job `contract` nuevo en `ci-pr.yml` (InMemory, sin Docker); skill `testing-pact` engordada con la fase previa.
 - Verificación: build 0/0; ContractTest 4/4; critic PASS.
-- Estado spec: 🚧 Borrador con evidencia (pendiente firma; Pact/`Login2FaVerifyResponse` → fase 10).
+- Estado spec: ✅ Aprobado (@usuario, 09-Oct-2026, firma sin cambios sobre la evidencia; Pact/`Login2FaVerifyResponse` → fase 10).
+
+## Firmas 03-16/03-17/03-18 + cierre addenda T2 (2026-10-09, rama `phase03.11`)
+- Firmados sin cambios: `03-16` (merge PR #15), `03-17` (merge PR #17), `03-18` (en `phase03.11`, PR pendiente) → ✅ Aprobado (@usuario, 09-Oct-2026).
+- Addenda T2 cerrados como fusionados: `03-01/spec-search-autocomplete.md`, `03-02/spec-search.md`, `03-03/spec-search-by-name.md` → ✅ Aprobado (fusionado y cerrado); línea T2 añadida al Detalle de cada `spec.md` principal (puntero al addendum + `docs/endpoints.md`). Los T2 de `03-05/03-10/03-11` ya vivían integrados en sus principales Aprobados (sin addendum separado por decisión del usuario).
+- Fase 03 al 100%: 19/19 specs principales ✅ + 3 addenda cerrados. Verificación: solo `.md`; `critic PASS` antes del commit.

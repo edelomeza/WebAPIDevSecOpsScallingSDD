@@ -31,7 +31,7 @@ Fixtures JSON reales por endpoint para contratos y Pact. **Depende de**: `03-00`
 - `Login2FaVerifyResponse` sin fixture hasta enrolar TOTP real (fase 10).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (4/4 verde + 14 fixtures, pendiente firma)
-- **Revisores:** —
-- **Fecha:** —
-- **Detalle:** ejecutado en `phase03.11` (fixtures + test, captura real, todo en `ContractTest`); PactNet/`Login2FaVerifyResponse` → fase 10.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario
+- **Fecha:** 2026-10-09
+- **Detalle:** ejecutado en `phase03.11` (fixtures + test, captura real, todo en `ContractTest`); firma sin cambios sobre la evidencia (4/4 + 14 fixtures; PactNet/`Login2FaVerifyResponse` → fase 10).

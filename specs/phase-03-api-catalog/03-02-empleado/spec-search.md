@@ -86,8 +86,7 @@ caché). **Depende de**: `03-02`, `02-01`, `03-00`, `03-16`, `05-01`.
 - `403` con JWT real diferido a fase 04 (stub `AdminPolicy`).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
-- **Revisores:** @arquitecto-principal (1 Revisor)
-- **Fecha:** 06-Oct-2026
-- **Detalle:** addendum T2 pendiente revisión; al aprobar, fusionar Detalle
-  en `spec.md` principal y registrar en `Memoria.md`.
+- **Estado:** ✅ Aprobado (fusionado y cerrado)
+- **Revisores:** @usuario
+- **Fecha:** 2026-10-09
+- **Detalle:** T2 ejecutado 06-Oct-2026 (código + tests + fila en `docs/endpoints.md`); Detalle fusionado en `spec.md` principal (línea T2); cierre sin cambios sobre la evidencia.
