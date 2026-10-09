@@ -25,7 +25,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         public async Task<ActionResult<VenPedidoFacturaResponseDto>> GetById(int id, CancellationToken cancellationToken)
         {
             var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-            return dto is null ? NotFound() : Ok(dto);
+            return dto is null ? throw new Services.NotFoundException($"Factura '{id}' no encontrada.") : Ok(dto);
         }
     }
 }
