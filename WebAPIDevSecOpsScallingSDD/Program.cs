@@ -170,18 +170,8 @@ namespace WebAPIDevSecOpsScallingSDD
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseExceptionHandler(errorApp =>
-                {
-                    errorApp.Run(async context =>
-                    {
-                        context.Response.StatusCode = 500;
-                        context.Response.ContentType = "application/json";
-                        await context.Response.WriteAsync("{\"error\": \"Un error interno ha ocurrido en el servidor.\"}").ConfigureAwait(false);
-                    });
-                });
-            }
+
+            app.UseMiddleware<Middleware.ExceptionHandlingMiddleware>();
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
@@ -223,6 +213,14 @@ namespace WebAPIDevSecOpsScallingSDD
                     var applied = await Context.DatabaseSeeder.ApplyStateAsync(db, request.State, cancellationToken).ConfigureAwait(false);
                     return applied ? Results.Ok(new { state = request.State }) : Results.BadRequest(new { error = $"Unknown provider state '{request.State}'." });
                 });
+
+                // NOTE (03-16): sondas deterministas para ErrorHandlingTests (403/408/500); solo no-prod.
+                Func<string> probeTimeout = static () => throw new TimeoutException("Probe timeout.");
+                Func<string> probeError = static () => throw new InvalidOperationException("Probe error.");
+                Func<string> probeForbidden = static () => throw new Services.ForbiddenAccessException("Probe forbidden.");
+                app.MapGet("/api/v1/probe/timeout", probeTimeout);
+                app.MapGet("/api/v1/probe/error", probeError);
+                app.MapGet("/api/v1/probe/forbidden", probeForbidden);
             }
         }
 

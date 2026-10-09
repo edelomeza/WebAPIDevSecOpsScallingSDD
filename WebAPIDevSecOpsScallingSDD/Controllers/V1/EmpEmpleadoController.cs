@@ -70,7 +70,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         public async Task<ActionResult<EmpEmpleadoDto>> GetById(int id, CancellationToken cancellationToken)
         {
             var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-            return dto is null ? NotFound() : Ok(dto);
+            return dto is null ? throw new Services.NotFoundException($"Empleado '{id}' no encontrado.") : Ok(dto);
         }
 
         [HttpPost]
@@ -82,15 +82,8 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var created = await _service.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
-                return CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var created = await _service.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
+            return CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
         }
 
         [HttpPut("{id:int}")]
@@ -107,19 +100,8 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var updated = await _service.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
-                return updated is null ? NotFound() : Ok(updated);
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Conflict(new { error = "The record was modified by another process." });
-            }
+            var updated = await _service.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
+            return updated is null ? throw new Services.NotFoundException($"Empleado '{id}' no encontrado.") : Ok(updated);
         }
 
         [HttpDelete("{id:int}")]
@@ -136,15 +118,8 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var deleted = await _service.DeleteAsync(id, dto, cancellationToken).ConfigureAwait(false);
-                return deleted ? NoContent() : NotFound();
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Conflict(new { error = "The record was modified by another process." });
-            }
+            var deleted = await _service.DeleteAsync(id, dto, cancellationToken).ConfigureAwait(false);
+            return deleted ? NoContent() : throw new Services.NotFoundException($"Empleado '{id}' no encontrado.");
         }
 
         private async Task<ActionResult?> ValidateAsync<T>(IValidator<T> validator, T dto, CancellationToken cancellationToken)

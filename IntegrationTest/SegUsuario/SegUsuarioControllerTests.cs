@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using IntegrationTest.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -180,7 +181,7 @@ namespace IntegrationTest.SegUsuario
         private static WebApplicationFactory<Program> CreateAdminFactory()
         {
 #pragma warning disable CA2000 // The inner factory is disposed with the wrapper.
-            return new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            return new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Staging").ConfigureTestServices(services =>
 #pragma warning restore CA2000
             {
                 services.AddAuthentication(options =>

@@ -49,7 +49,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         public async Task<ActionResult<VenCatEstadoDto>> GetById(int id, CancellationToken cancellationToken)
         {
             var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-            return dto is null ? NotFound() : Ok(dto);
+            return dto is null ? throw new Services.NotFoundException($"Estado '{id}' no encontrado.") : Ok(dto);
         }
 
         [HttpPost]
@@ -80,7 +80,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
             }
 
             var updated = await _service.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
-            return updated is null ? NotFound() : Ok(updated);
+            return updated is null ? throw new Services.NotFoundException($"Estado '{id}' no encontrado.") : Ok(updated);
         }
 
         [HttpDelete("{id:int}")]
@@ -98,7 +98,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
             }
 
             var deleted = await _service.DeleteAsync(id, dto, cancellationToken).ConfigureAwait(false);
-            return deleted ? NoContent() : NotFound();
+            return deleted ? NoContent() : throw new Services.NotFoundException($"Estado '{id}' no encontrado.");
         }
 
         private async Task<ActionResult?> ValidateAsync<T>(IValidator<T> validator, T dto, CancellationToken cancellationToken)

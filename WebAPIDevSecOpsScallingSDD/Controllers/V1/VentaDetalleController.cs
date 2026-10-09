@@ -54,7 +54,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         public async Task<ActionResult<VenVentaDetalleDto>> GetById(int id, CancellationToken cancellationToken)
         {
             var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-            return dto is null ? NotFound() : Ok(dto);
+            return dto is null ? throw new Services.NotFoundException($"Detalle de venta '{id}' no encontrado.") : Ok(dto);
         }
 
         [HttpPost("~/api/v{version:apiVersion}/ventas/{idVenta:int}/detalles")]
@@ -66,23 +66,10 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var created = await _service.AddDetalleAsync(idVenta, dto, GetCallerUserId(), cancellationToken).ConfigureAwait(false);
-                return created is null ? NotFound() : CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
-            catch (ValidationException ex)
-            {
-                return UnprocessableEntity(new { error = ex.Message });
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Conflict(new { error = "Stock insuficiente o el detalle fue modificado por otro proceso." });
-            }
+            var created = await _service.AddDetalleAsync(idVenta, dto, GetCallerUserId(), cancellationToken).ConfigureAwait(false);
+            return created is null
+                ? throw new Services.NotFoundException($"Venta '{idVenta}' no encontrada.")
+                : CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
         }
 
         [HttpDelete("{id:int}")]
@@ -99,19 +86,8 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var deleted = await _service.RemoveDetalleAsync(id, dto, GetCallerUserId(), cancellationToken).ConfigureAwait(false);
-                return deleted ? NoContent() : NotFound();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Conflict(new { error = "El detalle fue modificado por otro proceso." });
-            }
+            var deleted = await _service.RemoveDetalleAsync(id, dto, GetCallerUserId(), cancellationToken).ConfigureAwait(false);
+            return deleted ? NoContent() : throw new Services.NotFoundException($"Detalle de venta '{id}' no encontrado.");
         }
 
         private string? GetCallerUserId()

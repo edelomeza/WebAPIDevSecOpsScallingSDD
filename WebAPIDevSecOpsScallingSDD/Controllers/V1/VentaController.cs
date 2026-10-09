@@ -57,7 +57,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         public async Task<ActionResult<VenVentaDto>> GetById(int id, CancellationToken cancellationToken)
         {
             var dto = await _service.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-            return dto is null ? NotFound() : Ok(dto);
+            return dto is null ? throw new Services.NotFoundException($"Venta '{id}' no encontrada.") : Ok(dto);
         }
 
         [HttpPost]
@@ -69,19 +69,8 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
                 return failures;
             }
 
-            try
-            {
-                var created = await _service.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
-                return CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
-            }
-            catch (ValidationException ex)
-            {
-                return UnprocessableEntity(new { error = ex.Message });
-            }
-            catch (ConcurrencyConflictException)
-            {
-                return Conflict(new { error = "Stock insuficiente o la venta fue modificada por otro proceso." });
-            }
+            var created = await _service.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
+            return CreatedAtAction(nameof(GetById), new { id = created.id, version = "1" }, created);
         }
 
         private async Task<ActionResult?> ValidateAsync<T>(IValidator<T> validator, T dto, CancellationToken cancellationToken)

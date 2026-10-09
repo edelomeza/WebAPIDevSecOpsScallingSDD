@@ -123,10 +123,10 @@ namespace UnitTest.VentaDetalle
             SeedBase(context, existencia: 5, precio: 10m);
             var service = new VentaDetalleService(context, new FakeCacheService());
 
-            var stranger = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, "2"));
+            var stranger = await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, "2"));
             Assert.Contains("usuario autenticado", stranger.Message, StringComparison.Ordinal);
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, null));
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, "   "));
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, null));
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, "   "));
             Assert.Equal(1, await context.VenVentaDetalles.CountAsync());
         }
 
@@ -186,7 +186,7 @@ namespace UnitTest.VentaDetalle
             var service = new VentaDetalleService(context, new FakeCacheService());
             var created = await service.AddDetalleAsync(1, new VenVentaDetalleCreateDto { idProProducto = 1, intPiezaVenta = 1 }, "1");
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RemoveDetalleAsync(created!.id, new VenVentaDetalleDeleteDto { id = created.id, RowVersion = created.RowVersion }, "2"));
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.RemoveDetalleAsync(created!.id, new VenVentaDetalleDeleteDto { id = created.id, RowVersion = created.RowVersion }, "2"));
             Assert.NotNull(await context.VenVentaDetalles.SingleOrDefaultAsync(e => e.id == created!.id));
         }
 

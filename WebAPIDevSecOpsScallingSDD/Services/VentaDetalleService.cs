@@ -200,7 +200,7 @@ namespace WebAPIDevSecOpsScallingSDD.Services
             var owned = $"{ownerId}";
             if (string.IsNullOrWhiteSpace(callerUserId) || !string.Equals(owned, callerUserId.Trim(), StringComparison.Ordinal))
             {
-                throw new UnauthorizedAccessException("El detalle no pertenece al usuario autenticado.");
+                throw new ForbiddenAccessException("El detalle no pertenece al usuario autenticado.");
             }
         }
 

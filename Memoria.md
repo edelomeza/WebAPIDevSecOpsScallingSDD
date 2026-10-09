@@ -439,3 +439,20 @@
   04-01/04-02/04-04).
 - Ramas `error` local y `origin/error` eliminadas tras el merge (a petición del
   usuario; las `phase03.*` se conservan).
+
+## T1 — 03-16 Errors & HTTP ejecutado en rama `phase03.9` (2026-10-09)
+- `ExceptionHandlingMiddleware` (único try/catch) + `ErrorResponse`
+  (`Error/Status/TraceId`, `Detail` solo no-prod omitido en prod) + tipos
+  `NotFoundException`/`ForbiddenAccessException`; pipeline: middleware primero,
+  fuera `UseExceptionHandler` no-Dev (orden 01-02 intacto).
+- Purga try/catch en 8 controllers + 21 `NotFound()`→throw + `EnsureOwner`→403;
+  EmpEmpleado FK servicio 400→422 (único outlier); 10 factories de integración
+  a `Staging` (en Dev la página de excepciones devolvería HTML);
+  `Production` exige override `UseInMemoryDatabase=true`.
+- Sondas `GET /api/v1/probe/{timeout,error,forbidden}` gated
+  `EnableProviderStates` + no-prod.
+- Verificación: build 0/0; Unit 289/289 (+14), Security 62/62, Integration
+  Errors 8/8 (+37/37, 55/56 con solo Redis-Docker ambiental); Stryker **100%**
+  (break 80, 1 run, `stryker-0316.json`); critic PASS (1 aviso GET-only).
+- Spec/plan/task 03-16 retro-portados (Borrador con evidencia). Sin
+  commit/push (rama `phase03.9` local).
