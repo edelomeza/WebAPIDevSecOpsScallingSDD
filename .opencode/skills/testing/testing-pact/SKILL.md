@@ -10,6 +10,7 @@ Contratos API.
 ## Pasos
 
 Pacts JSON, `pactSpecification` 3.0.0 flat `{"match":"type"}`, proceso real + puerto libre + kill finally, `/provider-states` con IDENTITY_INSERT.
+Fase previa ejecutada `03-18` (sin PactNet): `ContractTest/Fixtures/*.json` (14, fuente única) generados por captura real del wire (`FixtureCaptureTests` con `WebApplicationFactory` `Staging` + auth `Test` + InMemory sin Docker; escribe solo con `CONTRACT_CAPTURE=1`, sin la variable valida status sin ensuciar git); refresh vía `IRefreshTokenService.CreateAsync` scoped; convención de nombres medida en `IsConventional` (prefijos legacy + `id`/sufijo + resto PascalCase, no PascalCase puro); `RowVersion` base64 `"AQ=="`; `xunit.runner.json` en serie.
 
 ## Checklist
 
@@ -17,4 +18,4 @@ WebApplicationFactory no sirve para Pact; RowVersion base64 `"AQ=="`.
 
 ## Referencias
 
-`ContractTest`.
+`ContractTest`, `specs/phase-03-api-catalog/03-18-json-contracts/spec.md`.
