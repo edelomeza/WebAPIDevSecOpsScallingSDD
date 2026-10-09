@@ -471,3 +471,16 @@
 - Updates Slice/Errores/Fase 1 (7): `03-api-base`, `03-api-vertical-slice`, `core/vertical-slice`, `03-saga-endpoints`, `03-legacy-sales` (canon `EnsureOwner→throw`), `core/traceability`, `core/spec-first-writing` (gates Fase A + critic + evidencia 0316); higiene: Checklist duplicados eliminados en `03-api-vertical-slice`/`traceability`/`07-static-analysis`/`05-cache-redis`/`testing-testcontainers`, `## Pasos` duplicado de `03-saga-endpoints` a `Detalle por endpoint` + `AdminOnly` corregido a `AdminPolicy`.
 - Updates Testing/Cache/CI (11): `testing-mutation` (refs 0309/0316 + tope …03-16), `testing-webappfactory` (`Staging`/`probe`/TwoFactor/`>=1`), `testing-strategy` (conteos 289/85/62/2 + estrategias TwoFactor/Errors), `analyzer-quickref` (filas S3041 + waiver `Secret` + canon 03-16), `powershell-quirks` (hardening `Invoke-Git`), `09-ci-matrix` (job `critic` + 8 checks), `09-cicd-ops` (sincronizado con ci-matrix), `07-static-analysis` + `07-quality-supply-chain` (tope + scores), `05-cache-redis` (dashboard sin `VersionKey` + `2fa:{userId}`), `testing-testcontainers` (solo nota ambiental).
 - Verificación: solo markdown (sin código); `scripts/critic-guardrails.ps1` → PASS antes del commit.
+
+## Cierre PR #16 phase03.10 mergeado a main (2026-10-09)
+- Merge `86af0ac` (PR #16 `phase03.10` → `main`): 3 skills nuevas + 23 updates (`f0c508c`).
+- `main` local sincronizado en `86af0ac` (fast-forward, working tree limpio).
+- Skills cerradas por completo en `main`: 47 `SKILL.md` (44 + 3 nuevas) con evidencia 03-15/03-09/03-16 + Fase 1.
+
+## T1 — 03-17 Endpoint Catalog ejecutado, opción B (2026-10-09, rama `phase03.11`)
+- `docs/endpoints.md` nuevo (56 filas: 7 auth/misc + 1 ping raíz + 3 `probe` solo no-prod + 31 CRUD/search/autocomplete + 14 ventas/saga; rate-limit como `NOTE 04-04`; nota `ErrorResponse` post-`03-16`).
+- Hallazgo del inventario: `GET /ping` raíz (texto `"pong"`, `Program.cs:25`) existe además de `GET /api/v1/ping` del controller; las sondas `probe/*` son minimal APIs en `Program.cs:217-223` (no hay `ProbeController`), gate `EnableProviderStates` + no-prod.
+- `spec.md` conciliado (6 correcciones: `AdminOnly→AdminPolicy`, `TwoFactorSetupRequest` eliminado — `setup` sin DTO —, `Usuario*→SegUsuario*`, rutas faltantes, rate `NOTE`, códigos `409/422/403`); `task.md`/`plan.md` reescritos a formato estándar; skill `09-ci-matrix` +1 job.
+- `scripts/check_endpoints.ps1` nuevo (PS 5.1, sin dependencias): extrae `[HttpX]`+`[Route]` de los 17 controllers + `MapGet` de `Program.cs`, respeta placeholders `{idVenta:int}` al normalizar, exige fila `| VERBO | ruta |`; primer run cazó 3 gaps reales (placeholders + `/ping` no inventariado) → `OK (56 rutas)` tras fixes; job `endpoints` en `ci-pr.yml` (paralelo, `shell: pwsh`).
+- Verificación: script `OK exit 0` + `critic PASS (8 files) exit 0` + YAML parse OK; sin código de producto (sin build/tests).
+- Estado spec: 🚧 Borrador con evidencia (pendiente firma).

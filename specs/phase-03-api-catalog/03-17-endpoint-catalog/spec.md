@@ -11,46 +11,39 @@ Catálogo consolidado y vivo de todos los endpoints de la API. **Depende de**: `
 - Documento de referencia; sin código.
 
 ## Contratos
-| Método | Ruta | Auth | Rate limit | Request DTO | Response | Códigos |
-|---|---|---|---|---|---|---|
-| POST | /api/v1/auth/login | Anónimo | Login 5/5min | LoginRequest | LoginResponse | 200/401/423/429 |
-| POST | /api/v1/auth/login2fa/verify | Anónimo | Login2faVerify 10/5min | Login2faVerifyRequest | Login2faVerifyResponse | 200/401/429 |
-| POST | /api/v1/auth/refresh | Anónimo | Global 1000/min | RefreshRequest | RefreshResponse | 200/401 |
-| POST | /api/v1/auth/logout | Bearer | Global 1000/min | LogoutRequest | Empty | 204/401 |
-| POST | /api/v1/two-factor/setup | Bearer | Global 1000/min | TwoFactorSetupRequest | TwoFactorSetupResponse | 200/401 |
-| POST | /api/v1/two-factor/verify | Bearer | Global 1000/min | TwoFactorVerifyRequest | TwoFactorVerifyResponse | 200/401 |
-| GET/POST | /api/v1/clientes | AdminOnly+AdminPolicy | Admin 200/min | CliClienteCreateDto | PagedResult<CliClienteDto> | 200/201/400/401/403/429 |
-| PUT/DELETE | /api/v1/clientes/{id} | AdminOnly+AdminPolicy | Admin 200/min | CliClienteUpdateDto/DeleteDto | CliClienteDto/204 | 204/400/401/403/404/409 |
-| GET/POST | /api/v1/empleados | AdminOnly+AdminPolicy | Admin 200/min | EmpEmpleadoCreateDto | PagedResult<EmpEmpleadoDto> | 200/201/400/401/403/429 |
-| PUT/DELETE | /api/v1/empleados/{id} | AdminOnly+AdminPolicy | Admin 200/min | EmpEmpleadoUpdateDto/DeleteDto | EmpEmpleadoDto/204 | 204/400/401/403/404/409 |
-| GET/POST | /api/v1/productos | AdminOnly+AdminPolicy | Admin 200/min | ProProductoCreateDto | PagedResult<ProProductoDto> | 200/201/400/401/403/429 |
-| PUT/DELETE | /api/v1/productos/{id} | AdminOnly+AdminPolicy | Admin 200/min | ProProductoUpdateDto/DeleteDto | ProProductoDto/204 | 204/400/401/403/404/409 |
-| GET/POST | /api/v1/estados-venta | AdminOnly+AdminPolicy | Admin 200/min | VenCatEstadoCreateDto | PagedResult<VenCatEstadoDto> | 200/201/400/401/403/429 |
-| PUT/DELETE | /api/v1/estados-venta/{id} | AdminOnly+AdminPolicy | Admin 200/min | VenCatEstadoUpdateDto/DeleteDto | VenCatEstadoDto/204 | 204/400/401/403/404/409 |
-| GET/POST | /api/v1/usuarios | AdminOnly+AdminPolicy | Admin 200/min | UsuarioCreateDto | PagedResult<UsuarioDto> | 200/201/400/401/403/429 |
-| PUT/DELETE | /api/v1/usuarios/{id} | AdminOnly+AdminPolicy | Admin 200/min | UsuarioUpdateDto/DeleteDto | UsuarioDto/204 | 204/400/401/403/404/409 |
-| POST | /api/v1/ventas | Bearer | ConcurrentWrites 10 | VenVentaCreateDto | 201 Created | 201/400/401/409/422 |
-| GET | /api/v1/ventas/{id} | Bearer | Global 1000/min | — | VenVentaDto | 200/401/404 |
-| POST | /api/v1/ventas/{id}/detalles | Bearer | ConcurrentWrites 10 | VenVentaDetalleCreateDto | 201 Created | 201/400/401/403/404 |
-| DELETE | /api/v1/ventas/detalles/{id} | Bearer | ConcurrentWrites 10 | — | 204 | 204/401/403/404 |
-| POST | /api/v1/ventas/pedido | AdminOnly+AdminPolicy | Admin 200/min | PedidoCreateDto | PedidoResponseDto | 201/400/401/403 |
-| POST | /api/v1/ventas/pago | AdminOnly+AdminPolicy | Admin 200/min | PagoCreateDto | PagoResponseDto | 201/400/401/403/409/422 |
-| GET | /api/v1/ventas/pago/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto | 200/401/403/404 |
-| GET | /api/v1/ventas/pago/pedido/{pedidoId} | AdminOnly+AdminPolicy | Admin 200/min | — | PagoResponseDto[] | 200/401/403 |
-| GET | /api/v1/ventas/factura/{id} | AdminOnly+AdminPolicy | Admin 200/min | — | VenPedidoFacturaResponseDto | 200/401/403/404 |
-| GET | /api/v1/ventas/dashboard | AdminOnly+AdminPolicy | Admin 200/min | `desde/hasta/estadoSaga` | DashboardDto | 200/400/401/403 |
+
+Tabla canónica: `docs/endpoints.md` (56 filas a 09-Oct-2026: 7 auth/misc + 1 ping
+raíz + 3 sondas `probe` solo no-prod + 31 CRUD/search/autocomplete + 14 ventas/saga).
+Este spec no duplica la tabla: la verifica vía `scripts/check_endpoints.ps1`.
+
+Correcciones aplicadas sobre la tabla anterior (obsoleta):
+1. `AdminOnly+AdminPolicy` → `AdminPolicy` (`AdminOnly` no existe en código).
+2. `TwoFactorSetupRequest` eliminado: `POST /two-factor/setup` no lleva DTO
+   (`Setup(CancellationToken)`; solo existe `TwoFactorSetupResponse`).
+3. `UsuarioCreateDto/UsuarioDto` → `SegUsuario*` (nombres reales).
+4. Añadidas las rutas que faltaban: `search`/`autocomplete` (clientes,
+   empleados, productos, usuarios), `ventas/search`,
+   `ventas/detalles/autocomplete-productos`, `GET detalles/{id}`,
+   `GET pedido/{id:guid}`, `probe/*` (minimal APIs en `Program.cs`,
+   gate `EnableProviderStates` + no-prod), `ping`.
+5. Rate limit como `NOTE 04-04` (targets, no policies vigentes).
+6. Códigos post-`03-16`: `ErrorResponse` uniforme, `422` FKs, `409`
+   concurrencia/duplicado, `403` vía `ForbiddenAccessException`,
+   pago-por-pedido sin 404 (lista vacía).
 
 ## Tests
 - Revisión contra Pact/contratos en fase 10 (`ContractTest`).
 
 ## Criterios
-- Todos los endpoints listados.
+- `docs/endpoints.md` lista las 56 filas (toda action de `Controllers/V1/` + `MapGet` de `Program.cs`: ping raíz + 3 `probe`).
+- `scripts/check_endpoints.ps1` en verde (toda ruta del código tiene fila exacta método+ruta).
+- Sin `AdminOnly`, sin `TwoFactorSetupRequest`, sin `Usuario*`: nombres reales.
 
 ## Límites
 - Las policies de rate limit se implementan en `04-04`.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
+- **Estado:** 🚧 Borrador con evidencia (tabla 56 filas + script verde, pendiente firma)
 - **Revisores:** —
 - **Fecha:** —
-- **Detalle:** pendiente de ejecución.
+- **Detalle:** ejecutado en `phase03.11` (opción B); `TwoFactorSetupRequest`/`AdminOnly` corregidos; rate-limit `NOTE 04-04`.
