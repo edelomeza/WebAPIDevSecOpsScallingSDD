@@ -503,3 +503,11 @@
 - Firmados sin cambios: `03-16` (merge PR #15), `03-17` (merge PR #17), `03-18` (en `phase03.11`, PR pendiente) → ✅ Aprobado (@usuario, 09-Oct-2026).
 - Addenda T2 cerrados como fusionados: `03-01/spec-search-autocomplete.md`, `03-02/spec-search.md`, `03-03/spec-search-by-name.md` → ✅ Aprobado (fusionado y cerrado); línea T2 añadida al Detalle de cada `spec.md` principal (puntero al addendum + `docs/endpoints.md`). Los T2 de `03-05/03-10/03-11` ya vivían integrados en sus principales Aprobados (sin addendum separado por decisión del usuario).
 - Fase 03 al 100%: 19/19 specs principales ✅ + 3 addenda cerrados. Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## Skills actualizadas con experiencia 03-17/03-18/cierres (2026-10-09, rama `phase03.11`)
+- 10 SKILL.md tocados + 1 nueva, solo `.md` (sin push por decisión del usuario).
+- Fix contradicción: `03-api-base` exigía "PascalCase puro" y el test de `03-18` lo tumbó → convención legacy medida (`IsConventional`) + fuentes únicas (`docs/endpoints.md`, `ContractTest/Fixtures`).
+- Sync CI/testing: `09-ci-matrix` (+job `contract`), `09-cicd-ops` (jobs `endpoints`+`contract`), `testing-pact` (cross-links), `testing-strategy` (contract 4 + serie `ContractTest` + excepción flujo único de captura).
+- Patrones metodología: `traceability` (firma masiva + cierre addenda con línea T2), `spec-first-writing` (no duplicar tablas vivas), `powershell-quirks` (guards sin dependencias + normalización de placeholders), `analyzer-quickref` (fila `ContractTest` 03-18 + `NoWarn CA1515`; tope …03-18 en `07-static-analysis`).
+- Nueva: `operations/drift-guards` (dueña del patrón canónico + extractor + job CI; guards vigentes: `check_endpoints`).
+- Verificación: `critic PASS` antes del commit.

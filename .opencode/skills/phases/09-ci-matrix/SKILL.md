@@ -26,6 +26,7 @@ Al definir o ajustar `ci-cd.yml` y workflows nightly.
 7. Jobs agregadores tolerantes + artifacts en pareja de majors.
 8. Job `critic` (Fase 1): paralelo sin `needs`, mismo SHA checkout, `shell: pwsh`, `exit 0/1`; PR template `3→8` checks; sub-agentes `slice-scaffolder`/`security-reviewer` (ver `operations/critic-guardrails`).
 9. Job `endpoints` (`03-17`): paralelo sin `needs`, mismo SHA, `shell: pwsh`, corre `scripts/check_endpoints.ps1` (toda action de `Controllers/V1/` + `MapGet` de `Program.cs` con fila en `docs/endpoints.md`).
+10. Job `contract` (`03-18`): con `needs: build` (compila la API referenciada), InMemory sin Docker, `dotnet test ContractTest -c Release --no-build` (captura + convención + sin secretos); patrón anti-drift en `operations/drift-guards`.
 
 ## Checklist
 
