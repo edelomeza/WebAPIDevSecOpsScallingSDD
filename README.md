@@ -13,13 +13,16 @@ Approval), with the Definition of Done in
 acceptance criteria per command or test, mandatory spec↔code↔test
 traceability, and `Memoria.md` as the living state log.
 
-Current status is honest: catalog CRUD + search/autocomplete, base auth
-(login, lockout, login-2FA verify, opaque refresh/logout), legacy sync sale
-with details, and the minimal saga path (order → payment → read-only invoice
-→ filtered dashboard) are implemented and green; real JWT issuance, TOTP
-setup, saga runtime (bus/consumers/compensation), observability, and the
-full CI/CD matrix are specified but pending. See `specs/` for the source of
-truth and `Memoria.md` for the current state and decisions.
+Current status is honest: phase 03 is finished and signed 19/19 —
+catalog CRUD + search/autocomplete, base auth (login, lockout, login-2FA
+verify, opaque refresh/logout, real TOTP provisioning with OtpNet),
+legacy sync sale with details, the minimal saga path (order → payment →
+read-only invoice → filtered dashboard), uniform errors via middleware,
+a living 56-row endpoint catalog with a drift-guard script, and 14 JSON
+fixtures captured from the real wire are implemented and green; real JWT
+issuance, saga runtime (bus/consumers/compensation), observability, and
+the full CI/CD matrix are specified but pending. See `specs/` for the
+source of truth and `Memoria.md` for the current state and decisions.
 
 ## Stack
 
@@ -41,9 +44,12 @@ Tests (xUnit 2.9.3 + coverlet):
   (`Testcontainers.MsSql` / `Testcontainers.Redis` 4.13.0)
 - `SecurityTest` — anonymous auth behavior (reuses `UnitTest` helpers)
 - `DatabaseTest` — migrations and seed on real SQL Server
-- `ContractTest`, `PerformanceTest` (NBomber), `ChaosTest` — placeholders
+- `ContractTest` — 14 JSON fixtures captured from the real wire
+  (`ContractTest/Fixtures/`, regenerate with `$env:CONTRACT_CAPTURE="1"`) +
+  naming-convention test (`IsConventional`); Pact stays in phase 10
+- `PerformanceTest` (NBomber), `ChaosTest` — placeholders
 - Mutation testing via Stryker.NET (per-slice configs `stryker-0301.json`
-  through `stryker-0315.json`, gate ≥ 80%)
+  through `stryker-0316.json` plus `stryker-0309.json`, gate ≥ 80%)
 
 Solution format and guardrails:
 
@@ -99,15 +105,17 @@ files can be ignored entirely.
 ## Architecture and endpoints
 
 Conventions: `api/v{version}/[controller]`, `ApiVersion("1.0")` via URL
-segment, PascalCase JSON (`PropertyNamingPolicy = null`), DTOs +
-FluentValidation. Auth is explicit per endpoint in one of three valid
-patterns: `AdminPolicy` (Admin role) on catalog and saga endpoints, bare
-`[Authorize]` (Bearer without policy, e.g. legacy sale and logout — a
-`User` gets 200, not 403, by design), or `[AllowAnonymous]` on login /
-refresh. The living endpoint matrix is
-`specs/phase-03-api-catalog/03-17-endpoint-catalog/spec.md`.
+segment, legacy-measured JSON naming (lowercase `str/int/dec/dte/bln`
+prefixes + rest PascalCase + `id`/suffix — enforced by `IsConventional`
+in `ContractTest`, NOT pure PascalCase), DTOs + FluentValidation. Auth is
+explicit per endpoint in one of three valid patterns: `AdminPolicy`
+(Admin role) on catalog and saga endpoints, bare `[Authorize]` (Bearer
+without policy, e.g. legacy sale and logout — a `User` gets 200, not 403,
+by design), or `[AllowAnonymous]` on login / refresh. The living endpoint
+matrix is `docs/endpoints.md` (56 rows, machine-checked by
+`scripts/check_endpoints.ps1` — the spec only links it, never duplicates it).
 
-Controllers (`Controllers/V1/`, 16):
+Controllers (`Controllers/V1/`, 17):
 
 | Controller | Route | Endpoints |
 |---|---|---|
@@ -119,6 +127,7 @@ Controllers (`Controllers/V1/`, 16):
 | `VenCatEstadoController` | `api/v1/estados-venta` | CRUD |
 | `LoginController` | `api/v1/auth` | `POST login` (anonymous) |
 | `Login2FaController` | `api/v1/auth` | `POST login2fa/verify` (anonymous) |
+| `TwoFactorController` | `api/v1/two-factor` | `POST setup` (Bearer, no request DTO) + `POST verify` (Bearer, real OtpNet ±1 window) |
 | `RefreshController` | `api/v1/auth` | `POST refresh` (anonymous, rotates opaque token) |
 | `LogoutController` | `api/v1/auth` | `POST logout` (Bearer, revokes via `jti ?? hash`) |
 | `VentaController` | `api/v1/ventas` | `POST` (Bearer, 201) + `GET {id}` (auxiliary) |
@@ -129,18 +138,22 @@ Controllers (`Controllers/V1/`, 16):
 | `VentasDashboardController` | `api/v1/ventas/dashboard` | `GET` with `desde/hasta/estadoSaga` filters (AdminPolicy) |
 
 Platform endpoints: `/health` (liveness), `/health/ready` (readiness,
-includes Redis), `/ping`, `/scalar` + `/openapi` (Development only),
-`POST /provider-states` (non-prod, gated by `EnableProviderStates`).
+includes Redis), `/ping` (root, plain `"pong"`) + `/api/v1/ping`
+(controller JSON), `/api/v1/probe/{timeout,error,forbidden}` (non-prod
+only, gated by `EnableProviderStates`), `/scalar` + `/openapi`
+(Development only), `POST /provider-states` (non-prod, gated by
+`EnableProviderStates`).
 
-Middleware order (`Program.cs`): ForwardedHeaders → HSTS (non-Dev) →
+Middleware order (`Program.cs`): `ExceptionHandlingMiddleware` (single
+try/catch, uniform `ErrorResponse`) → ForwardedHeaders → HSTS (non-Dev) →
 HttpsRedirection → CORS → OpenApi/Scalar (Dev) → Authentication →
 Authorization → Controllers → HealthChecks.
 
 ## Testing and quality
 
-CI order: restore → build → unit → integration → security → database →
-contract → mutation (nightly) → performance (nightly) → chaos (nightly).
-Tests run with `--no-build` after a Release build with 0 errors.
+CI order: restore → build → unit → integration → security → critic →
+endpoints → contract → semgrep. Tests run with `--no-build` after a
+Release build with 0 errors.
 
 ```powershell
 dotnet build -c Release --no-restore
@@ -148,18 +161,23 @@ dotnet test UnitTest/UnitTest.csproj -c Release --no-build
 dotnet test IntegrationTest/IntegrationTest.csproj -c Release --no-build
 dotnet test SecurityTest/SecurityTest.csproj -c Release --no-build
 dotnet test DatabaseTest/DatabaseTest.csproj -c Release --no-build
-dotnet stryker -f stryker-0315.json
+dotnet test ContractTest/ContractTest.csproj -c Release --no-build
+powershell -File scripts/check_endpoints.ps1
+powershell -File scripts/critic-guardrails.ps1
+dotnet stryker -f stryker-0316.json
 ```
 
-Measured state (08-Oct-2026):
+Measured state (09-Oct-2026):
 
 - Build Release 0 errors / 0 warnings
-- Unit 244/244, Integration 85/85, Security 60/60, Database 2/2
+- Unit 289/289, Integration 85/85, Security 62/62, Database 2/2, Contract 4/4
+- `check_endpoints.ps1` OK (56 routes), `critic-guardrails.ps1` PASS
 - Stryker ≥ 80% gate on every slice (100% on most services, e.g.
   `LoginService`, `Login2FaService`, `VentasFacturaService`,
-  `VentasDashboardService`; 82–91% on broader services such as
-  `VentaService`, `VentasPedidoService`, `VentaDetalleService` — residue is
-  relational-only branches outside `UnitTest` scope)
+  `VentasDashboardService`, `ExceptionHandlingMiddleware`; 82–95% on broader
+  services such as `VentaService`, `VentasPedidoService`,
+  `VentaDetalleService`, `VentasPagoService` — residue is relational-only
+  branches outside `UnitTest` scope; `TwoFactorService` 93.41%)
 - Real coverage gate is the mutation score (line coverage threshold
   reference: 45% via `scripts/check_coverage.py`, stub until phase 07)
 
@@ -189,8 +207,13 @@ Rules learned the hard way:
 
 - **Reduced scope with NOTEs** (same pattern as login T1): temp/token are
   opaque 32-byte values (`NOTE 04-01` → real HS256 JWT with `2fa_temp`
-  claim); TOTP is a deterministic fake accepting `123456`
-  (`NOTE 03-09` → real OtpNet with ±1 step window).
+  claim); TOTP provisioning is real (OtpNet, ±1 step window, secret
+  protected with DataProtection — enrollment secret returned once, covered
+  by a documented critic waiver).
+- Naming uses `IsConventional`, not pure PascalCase: lowercase legacy
+  prefixes (`str/int/dec/dte/bln` + uppercase/digit), `id` alone or with a
+  PascalCase suffix (`idCliCliente`), rest PascalCase (`RowVersion`) —
+  measured from the wire in 03-18 after pure PascalCase failed the test.
 - **Cache TTL capped at 120s** (`CacheService` throws above 2 min), so the
   2FA temp and lockout use 120s with `NOTE (04-02)` for the real 5 min /
   15 min values.
@@ -221,6 +244,37 @@ Rules learned the hard way:
   deferred); dashboard aggregates per-entity dates with `queue depth 0`
   (`NOTE 06-01`) and sanitizes `password/secret/token/":"` from cache keys.
 
+## SDD components
+
+Spec-Driven Development here is machinery, not paperwork. Integrated
+components (each one earned by a slice that needed it):
+
+| Component | What it is | Where it lives |
+|---|---|---|
+| Spec template | Mandatory 7-section spec + Approval block | `specs/_template.md` |
+| Governance / DoD | Borrador-with-evidence vs signed approval, testable criteria | `specs/phase-00-constitution/00-02-sdd-governance/spec.md` |
+| `Memoria.md` | Living log: state, decisions, lessons per phase | repo root |
+| Traceability | 4-layer pending log (`NOTE` + spec + task + Memoria) | `.opencode/skills/core/traceability/SKILL.md` |
+| Deferred scope | Fake-first with traceable `NOTE (XX-YY)`, never `TODO` | `.opencode/skills/core/deferred-scope-fakes/SKILL.md` |
+| Living catalogs | Canonical doc the spec links (never duplicates): 56-row endpoints | `docs/endpoints.md` |
+| Contract fixtures | 14 JSON captured from the real wire (`CONTRACT_CAPTURE=1`) | `ContractTest/Fixtures/` |
+| Drift guards | Canonical doc + extractor script + parallel CI job | `.opencode/skills/operations/drift-guards/SKILL.md` (`check_endpoints.ps1`, jobs `endpoints`/`contract`) |
+| Critic gate | 4 blocking diff-scoped checks, pre-push | `scripts/critic-guardrails.ps1` (skill `operations/critic-guardrails`) |
+| Skills | 48 rule packs; agents link them, never copy | `.opencode/skills/` |
+
+## Sub-agents
+
+Hybrid convention: agents define role, permissions and done-criteria;
+technical rules live in skills (agents only link `SKILL.md`). Manual
+invocation in dev (`@slice-scaffolder`, …); CI runs only the lightweight
+`critic` job. Identity and convention: `.opencode/agents/README.md`.
+
+| Agent | Role | Permissions |
+|---|---|---|
+| `slice-scaffolder` | Phase A: compilable vertical-slice skeleton intra-PR (+ fake→real swap variant for phase 04); never committed without its Phase B | edit+bash allow |
+| `security-reviewer` | Pre-push gate: critiques without editing or running Stryker (+ phase-04 checks: JWT, hashing, rate-limit, headers, secrets in logs) | edit deny |
+| `traceability-clerk` | Living 04-04/04-05 matrices + addenda: reports drift, never edits (brought forward from Phase 2 for phase 04) | edit deny |
+
 ## SDD workflow and roadmap
 
 - New work: write/extend the spec from `specs/_template.md`, implement the
@@ -233,14 +287,14 @@ Rules learned the hard way:
   (4 blocking diff-scoped checks; 401 parity / complexity / Stryker need test
   evidence). Manual sub-agents live in `.opencode/agents/` (hybrid: they link
   `.opencode/skills/`, never copy); CI runs only the lightweight `critic` job.
-- Roadmap: phases 00, 01, 02, and 03-00…03-08 plus 03-10…03-15 are approved
-  and implemented. Still pending: 03-09 (2FA setup), 03-16 (uniform errors),
-  the living 03-17 catalog, and phases 04 (JWT/credentials/hardening/
-  rate-limit), 06 (saga runtime), 07 (quality/supply chain), 08
-  (observability), 09 (CI/CD, AWS, chaos), 10 (testing strategy).
+- Roadmap: phases 00, 01, 02, and 03-00…03-18 are approved and implemented
+  (phase 03 signed 19/19). Still pending: PR #18 merge, phases 04
+  (JWT/credentials/hardening/rate-limit), 06 (saga runtime), 07
+  (quality/supply chain), 08 (observability), 09 (CI/CD, AWS, chaos),
+  10 (Pact provider verification).
 - Known gaps (not code, just not built yet): `deploy/` has no
   compose/CloudFormation/Grafana files, `scripts/check_coverage.py` and
   `.semgrep` custom rules are stubs, and the 8-check PR checklist lives in
   `.github/pull_request_template.md`. `.github/workflows/ci-pr.yml` runs
-  build → unit/security/integration → semgrep plus the `critic` guardrail
+  build → unit/security/integration → critic/endpoints/contract → semgrep
   (mutation/perf/chaos stay nightly).

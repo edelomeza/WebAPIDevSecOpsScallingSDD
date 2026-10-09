@@ -512,8 +512,7 @@
 - Nueva: `operations/drift-guards` (dueña del patrón canónico + extractor + job CI; guards vigentes: `check_endpoints`).
 - Verificación: `critic PASS` antes del commit.
 
-## AGENTS.md sincronizado con la realidad 03-18 (2026-10-09, rama `phase03.11`)
-- 10 fixes: convención legacy medida en §1 (NO PascalCase puro), banner fase 03 retirado, `ContractTest` en comandos, orden CI real (`critic→endpoints→contract→semgrep`), `check_endpoints`+`critic` en §4, Contract por captura (Pact→fase 10), semgrep sin `--metrics=off`, quirks `ContractTest` + `analyzer-quickref`, §11 con 3 agentes + `drift-guards`, structure (`docs/`, `.opencode/`, `ContractTest` real).
+## AGENTS.md sincronizado con la realidad 03-18 (2026-10-09, rama `phase03.11`)- 10 fixes: convención legacy medida en §1 (NO PascalCase puro), banner fase 03 retirado, `ContractTest` en comandos, orden CI real (`critic→endpoints→contract→semgrep`), `check_endpoints`+`critic` en §4, Contract por captura (Pact→fase 10), semgrep sin `--metrics=off`, quirks `ContractTest` + `analyzer-quickref`, §11 con 3 agentes + `drift-guards`, structure (`docs/`, `.opencode/`, `ContractTest` real).
 - §3 +2 límites (no PascalCase puro, no duplicar tablas vivas). `constitution.md` raíz no se crea (opción A: la canónica vive en `specs/phase-00-constitution/`).
 - Verificación: solo `.md`; `critic PASS` antes del commit.
 
@@ -523,3 +522,8 @@
 - Nuevo `traceability-clerk` (adelantado de Fase 2): matrices `04-04`/`04-05` + addenda verificados contra código, `edit deny`, solo reporta gaps; evita checklist ASVS ficticio.
 - `README.md` de agentes actualizado (tabla + skills enlazadas).
 - Verificación: solo `.md`; `critic PASS` antes del commit.
+
+## README.md reconciliado + areas SDD/sub-agentes (2026-10-09, rama `phase03.11`)
+- 7 falsedades corregidas (03-09/03-16/03-17 pendientes, ContractTest placeholder, Stryker hasta 0315, PascalCase, 16 controllers, middleware sin ExceptionHandling, CI sin endpoints/contract, counts 08-Oct, TOTP fake) + matriz canonica a `docs/endpoints.md`.
+- Nuevas secciones `## SDD components` (10 componentes con puntero) y `## Sub-agentes` (tabla 3 agentes + convencion hibrida); roadmap (fase 03 19/19 aprobada, pendiente PR #18) y `Key decisions` (TOTP real, `IsConventional`).
+- Verificacion: solo `.md`; `critic PASS` antes del commit.
