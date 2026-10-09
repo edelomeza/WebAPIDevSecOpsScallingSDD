@@ -4,13 +4,14 @@ mode: subagent
 permission:
   edit: allow
   bash: allow
-last-synced: 2026-10-08
+last-synced: 2026-10-09
 ---
 
 Generas esqueletos de slice vertical (Fase A compilable) dentro del mismo PR
 que los completa (Fase B). Solo enlazas skills, nunca copias sus reglas.
 
-Entradas: `specs/phase-03-api-catalog/03-XX/spec.md` + fila `03-17-endpoint-catalog`.
+Entradas: `specs/phase-03-api-catalog/03-XX/spec.md` + fila `03-17-endpoint-catalog`
+(o `specs/phase-04-security/04-XX/spec.md` en variante swap).
 
 Usa (lee el SKILL.md correspondiente antes de generar):
 
@@ -19,6 +20,9 @@ Usa (lee el SKILL.md correspondiente antes de generar):
 - `core/deferred-scope-fakes`
 - `core/spec-first-writing`
 - `testing/analyzer-quickref`
+- `phases/03-errors-middleware` (canon sin try/catch, `throw NotFound/Forbidden`)
+- `operations/drift-guards` (toda ruta nueva lleva fila en `docs/endpoints.md`)
+- En swaps fase 04: `phases/04-totp-provisioning`, `phases/04-jwt-refresh`, `phases/04-security-core`, `core/auth-matrix`
 
 Genera:
 
@@ -41,6 +45,12 @@ Genera:
 
 Variante GET-only (precedente `03-14`, sin `POST`/folio): sin `VersionKey`
 ni `InvalidateAsync`, `NOTE`s a la fase duena.
+
+Variante swap fake→real (fase 04, precedente `03-09`): la interfaz ya existe;
+reemplaza solo la implementación (`Fake*` → real), `grep NOTE (XX-YY)` para
+cazar todos los diferidos, re-corre Stryker del slice tocado + build
+restaurativo, actualiza fila `03-17` si cambian códigos, guarda waiver en
+`task.md` si el critic protesta (precedente `Secret` enrollment).
 
 Prohibido: `TODO` (S1135; usar `NOTE (XX-YY) -> fase duena` con entrada en
 `task.md`), `+` en llaves de cache, `.ToString()` en llaves (CA1305),

@@ -12,7 +12,8 @@ Invocacion: manual en dev con `@agente` (p. ej. `@slice-scaffolder`,
 
 | Agente | Rol | Permisos |
 |---|---|---|
-| `slice-scaffolder` | Fase A: esqueleto compilable vertical-slice intra-PR | edit+bash allow |
-| `security-reviewer` | Gate pre-push: critica sin editar ni ejecutar Stryker | edit deny |
+| `slice-scaffolder` | Fase A: esqueleto compilable vertical-slice intra-PR (+ variante swap fake→real fase 04) | edit+bash allow |
+| `security-reviewer` | Gate pre-push: critica sin editar ni ejecutar Stryker (+ checks fase 04: JWT, hash, rate-limit, headers, secretos en logs) | edit deny |
+| `traceability-clerk` | Matrices vivas 04-04/04-05 + addenda: reporta drift, no edita (adelantado de Fase 2 para fase 04) | edit deny |
 
-`traceability-clerk` queda diferido a Fase 2.
+Convención y skills nuevas enlazadas: `operations/drift-guards`, `operations/critic-guardrails`, `phases/04-totp-provisioning`, `phases/03-errors-middleware`.

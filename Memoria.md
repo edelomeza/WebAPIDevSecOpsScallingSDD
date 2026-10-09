@@ -511,3 +511,10 @@
 - Patrones metodología: `traceability` (firma masiva + cierre addenda con línea T2), `spec-first-writing` (no duplicar tablas vivas), `powershell-quirks` (guards sin dependencias + normalización de placeholders), `analyzer-quickref` (fila `ContractTest` 03-18 + `NoWarn CA1515`; tope …03-18 en `07-static-analysis`).
 - Nueva: `operations/drift-guards` (dueña del patrón canónico + extractor + job CI; guards vigentes: `check_endpoints`).
 - Verificación: `critic PASS` antes del commit.
+
+## Sub-agentes para fase 04: 2 updates + 1 nuevo (2026-10-09, rama `phase03.11`)
+- `slice-scaffolder`: `last-synced` al día + variante swap fake→real (precedente `03-09`: `grep NOTE`, re-Stryker, waiver) + enlaces a skills nuevas (`04-totp-provisioning`, `03-errors-middleware`, `drift-guards`).
+- `security-reviewer`: `last-synced` al día + 5 checks fase 04 (JWT estrictos, anti-degradación de hash, rate-limit con fila `04-04`, headers/CORS, secretos en logs); WARN hasta ejecutar su spec, FAIL desde su merge.
+- Nuevo `traceability-clerk` (adelantado de Fase 2): matrices `04-04`/`04-05` + addenda verificados contra código, `edit deny`, solo reporta gaps; evita checklist ASVS ficticio.
+- `README.md` de agentes actualizado (tabla + skills enlazadas).
+- Verificación: solo `.md`; `critic PASS` antes del commit.

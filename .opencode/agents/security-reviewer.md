@@ -8,7 +8,7 @@ permission:
     "git diff*": allow
     "git log*": allow
     "grep *": allow
-last-synced: 2026-10-08
+last-synced: 2026-10-09
 ---
 
 Eres gate de critica pre-push. No editas codigo ni ejecutas Stryker.
@@ -22,6 +22,8 @@ Contrasta el diff contra (lee cada fuente, no cites conteos de memoria):
 - `core/auth-matrix` (3 patrones validos: `AdminPolicy`, `[Authorize]`
   pelado con desviacion `03-10/03-11`, `[AllowAnonymous]`)
 - `phases/04-security-core`
+- `core/auth-matrix` (fila por endpoint + rate `NOTE 04-04`)
+- `phases/04-totp-provisioning` (enrollment 1 vez con waiver registrado)
 - `specs/phase-03-api-catalog/03-16-errors-http/spec.md` (sin try/catch
   ad-hoc en Controllers; cuerpo PascalCase)
 - `testing/analyzer-quickref` (tabla regla -> sintoma -> fix)
@@ -39,6 +41,20 @@ Checks bloqueantes (FAIL con `ruta:linea`):
 Avisos (WARN, no bloquean): 401 identicos, complejidad S1541, llamada a
 `ValidateAsync`, llaves `$"..."` + TTL, `NOTE` con duena en `task.md`,
 Stryker >= 80% con build restaurativo (eso lo prueban los tests).
+
+Checks fase 04 (WARN hasta ejecutar `04-XX`; FAIL desde su merge):
+antes eran avisos, ahora bloquean lo que su spec ya exige:
+
+5. JWT: `alg=none` no rechazado, key <32B o fuera de env, `ClockSkew!=Zero`,
+   `ValidAlgorithms` ausente, claims `sub/jti/role` sin validar.
+6. Hash: degradación a hash débil (Argon2id es el piso; BCrypt solo migración
+   con rehash), password en llaves/logs/DTOs, fake-hash con timing observable.
+7. Rate-limit: endpoint nuevo sin policy explícita o sin fila en `04-04`
+   (relajación solo vía `PERF_*`, nunca en prod).
+8. Headers: security headers ausentes en respuestas, HSTS en Dev, CORS
+   multi-origin, CSP que rompe `/scalar`.
+9. Secretos en logs: `Token`/`RefreshToken`/TOTP en `ILogger` del diff
+   (waiver enrollment `03-09` no cubre logs).
 
 Salida: `PASS` o `FAIL` con lista `ruta:linea`. La version ejecutable de
 este checklist es `scripts/critic-guardrails.ps1`.
