@@ -548,3 +548,8 @@
 - Verificación: build 0 + Unit 294/294 + Security 67/67 + Integration 92/92 (7 Docker-only excluidos: sin daemon local) + Contract 4/4 + `critic PASS (11)` + `endpoints OK (56)`; Stryker slice → nightly (tope local 25 min, umbral ≥83.93%).
 - Lecciones: `ClaimTypes.Role` no sobrevive al mapa outbound (payload sin `role`) → literal `"role"` en emisión (inbound lo eleva a `Role` para `AdminPolicy`); `EndsWith(char)` + `string.Concat/AsSpan` exigidos por CA1865/CA1845; CS8601 en indexer `IConfiguration` → local + ternaria.
 - Estado spec: 🚧 Borrador con evidencia T1 (pendiente firma; `security-reviewer` pre-push en curso).
+
+## Cierre PR #20 phase04.1 mergeado a main (2026-10-09)
+- Merge `1f33c2d` (PR #20 `phase04.1` → `main`): T1 `04-01` (`2c0a295`: JwtBearer tras flag + swap opaco→JWT + `UnitTest/Jwt` + `SecurityTest/Jwt` + `01-04`/`Example.json` + tríada `.md`).
+- `main` local sincronizado en `1f33c2d` (fast-forward, working tree limpio) + build 0 + `critic PASS`; creada `phase04.2` desde `main` (hereda lo comiteado; sin pendientes sin commitear).
+- Spec `04-01` → ✅ Aprobado (@usuario, 09-Oct-2026, firma sobre PR #20 mergeado).

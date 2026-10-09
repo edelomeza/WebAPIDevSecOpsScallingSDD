@@ -43,8 +43,8 @@ Skills enlazadas (no copiadas): `phases/04-jwt-refresh`, `phases/04-totp-provisi
 - Sin Pact aquí (captura real queda para fase 10; contract por fixtures `03-18`).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador
-- **Revisores:** —
-- **Fecha:** —
-- **Detalle:** reconciliado 09-Oct-2026 solo `.md`; T1 ejecutado 09-Oct-2026 (evidencia: build 0 + Unit 294/294 + Security 67/67 + Integration 92/92 + Contract 4/4 + `critic PASS` + `endpoints OK`); pendiente firma, sin revisor indicado.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
+- **Fecha:** 09-Oct-2026
+- **Detalle:** T1 ejecutado y mergeado en PR #20 (`1f33c2d`): build 0 + Unit 294/294 + Security 67/67 + Integration 92/92 + Contract 4/4 + `critic PASS` + `endpoints OK` + `@security-reviewer PASS` (0 bloqueantes); Stryker slice → nightly.
 - **Desviaciones registradas:** (1) `RefreshTokenServiceTests.CreateReturnsHexPairAndPersistsHashOnly` → `CreateReturnsJwtAccessAndHashedRefresh` (access JWT con 2 `.`, ya no hex 64; refresh sigue hex 64). (2) `nuget.config` sin cambios (`Microsoft.*` + `Microsoft.IdentityModel.*` ya cubren `JwtBearer 10.0.12`; restore verde; bins unificados 8.19.2, MSB3277 solo ruido). (3) `appsettings.json` sin sección `Jwt` (ausente → fallback placeholder en código; secreto real por env en prod). (4) Stryker slice → nightly (corrida acotada superó 25 min local; umbral ≥83.93% pendiente nightly según `AGENTS.md §4`). (5) `LogoutController.cs:39 NOTE (04-01)` conservado (fallback `jti ?? hash` intacto como defensa).
