@@ -7,6 +7,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -16,6 +17,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/ventas/pedido")]
     [Authorize(Policy = "AdminPolicy")]
+    [EnableRateLimiting(Services.RateLimitOptions.AdminPolicyName)]
     public sealed class VentasPedidoController : ControllerBase
     {
         private readonly IVentasPedidoService _service;

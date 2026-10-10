@@ -47,6 +47,16 @@ namespace UnitTest.Common
             Assert.True(root.TryGetProperty("EnableProviderStates", out _));
             Assert.True(root.TryGetProperty("Redis", out var redis));
             Assert.True(redis.TryGetProperty("ConnectionString", out _));
+            Assert.True(root.TryGetProperty("RateLimiting", out var rateLimiting));
+            Assert.True(rateLimiting.TryGetProperty("LoginPermitLimit", out _));
+            Assert.True(rateLimiting.TryGetProperty("LoginWindowSeconds", out _));
+            Assert.True(rateLimiting.TryGetProperty("Login2faPermitLimit", out _));
+            Assert.True(rateLimiting.TryGetProperty("Login2faWindowSeconds", out _));
+            Assert.True(rateLimiting.TryGetProperty("GlobalPermitLimit", out _));
+            Assert.True(rateLimiting.TryGetProperty("GlobalWindowSeconds", out _));
+            Assert.True(rateLimiting.TryGetProperty("AdminPermitLimit", out _));
+            Assert.True(rateLimiting.TryGetProperty("AdminWindowSeconds", out _));
+            Assert.True(rateLimiting.TryGetProperty("ConcurrentWritesPermitLimit", out _));
         }
 
         [Fact]

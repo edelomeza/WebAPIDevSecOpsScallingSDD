@@ -6,6 +6,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -15,6 +16,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/estados-venta")]
     [Authorize(Policy = "AdminPolicy")]
+    [EnableRateLimiting(Services.RateLimitOptions.AdminPolicyName)]
     public sealed class VenCatEstadoController : ControllerBase
     {
         private readonly IVenCatEstadoService _service;

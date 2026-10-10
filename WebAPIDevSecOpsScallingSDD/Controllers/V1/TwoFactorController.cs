@@ -8,6 +8,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -17,6 +18,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/two-factor")]
     [Authorize]
+    [EnableRateLimiting(Services.RateLimitOptions.GlobalPolicyName)]
     public sealed class TwoFactorController : ControllerBase
     {
         private readonly ITwoFactorService _service;

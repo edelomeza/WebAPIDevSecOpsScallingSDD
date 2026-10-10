@@ -14,8 +14,8 @@ Convenciones aplicadas en todo el catálogo (probadas `03-01`…`03-16`):
   (`EnsureOwner`); `409` = `ConcurrencyConflictException`; `422` =
   `ValidationException` de FKs (único outlier: `EmpEmpleado` FK va a `422`
   desde el servicio en vez de `400`).
-- Rate limit: TODO diferido a `04-04` (`NOTE (04-04)` por endpoint). La columna
-  indica el target, no una policy vigente.
+- Rate limit: implementado en `04-04` (`UseRateLimiter` + `[EnableRateLimiting]`; ver
+  `docs/rate-limit-matrix.md`, canónica de auth/policy). La columna indica la policy vigente.
 - `401` anónimo sin JWT; `403` con `AdminPolicy` sin rol `Admin`.
   (`AdminOnly` no existe en código: la policy real es solo `AdminPolicy`.)
 - Paginación: `page`/`pageSize` sueltos (sin `QueryParams`).

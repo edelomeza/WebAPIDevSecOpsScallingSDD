@@ -32,7 +32,7 @@ Hashing, anti-enumeración y lockout de credenciales. **Depende de**: `01-02`, `
 - Temp-2FA 5min y blacklist `RefreshTokenService` siguen en TTL 120s (deuda explícita). Datos seed/dev con hash placeholder o fake requieren reset de password (verify fail-closed ante formato desconocido).
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (ver Criterios)
-- **Revisores:** —
-- **Fecha:** 09-Oct-2026
-- **Detalle:** implementado según plan; pendiente 1 revisor + `@security-reviewer` pre-push.
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
+- **Fecha:** 10-Oct-2026
+- **Detalle:** implementado según plan; revisado y aprobado por @usuario (ver Criterios como evidencia).

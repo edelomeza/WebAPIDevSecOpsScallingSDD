@@ -6,6 +6,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -15,6 +16,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/auth")]
     [AllowAnonymous]
+    [EnableRateLimiting(Services.RateLimitOptions.Login2faPolicyName)]
     public sealed class Login2FaController : ControllerBase
     {
         private readonly ILogin2FaService _service;

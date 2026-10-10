@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -8,6 +9,7 @@ using IntegrationTest.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IntegrationTest.Login
@@ -125,7 +127,11 @@ namespace IntegrationTest.Login
         private static WebApplicationFactory<Program> CreateAdminFactory()
         {
 #pragma warning disable CA2000 // The inner factory is disposed with the wrapper.
-            return new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            return new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                // (04-04) El flujo de lockout emite 6 logins; eleva el límite para no colisionar con la policy Login 5/5min.
+                ["RateLimiting:LoginPermitLimit"] = "100",
+            })).ConfigureTestServices(services =>
 #pragma warning restore CA2000
             {
                 services.AddAuthentication(options =>

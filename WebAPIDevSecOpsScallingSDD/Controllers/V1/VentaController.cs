@@ -7,6 +7,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -16,6 +17,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/ventas")]
     [Authorize]
+    [EnableRateLimiting(Services.RateLimitOptions.GlobalPolicyName)]
     public sealed class VentaController : ControllerBase
     {
         private readonly IVentaService _service;
@@ -61,6 +63,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         }
 
         [HttpPost]
+        [EnableRateLimiting(Services.RateLimitOptions.ConcurrentWritesPolicyName)]
         public async Task<ActionResult<VenVentaDto>> Create(VenVentaCreateDto dto, CancellationToken cancellationToken)
         {
             var failures = await ValidateAsync(_createValidator, dto, cancellationToken).ConfigureAwait(false);

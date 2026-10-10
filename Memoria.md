@@ -561,7 +561,7 @@
 - Tests: `PasswordHasherTests` 10 (OK/KO, BCrypt legacy, fresco/desconocido, nulos, Fake-nulos, coste-cero, opciones custom, `p=` fijado, batería 14 malformados) + `LoginServiceTests` 14 (expiración +14:59/+15:01, borde exacto 15:00, rearme sin recastigo, re-bloqueo tras 5 más) + `LoginLockoutStoreTests` 6 (reintento fresco/existente/expirado/doble-fallo con `FlakyDbContext`, reset con conflicto, reset limpio) + `AntiEnumerationTests` 3 (timing <10s) + `NoLeakTests` 4 casos; ctor 4 args en `Login2fa/*Tests`.
 - Verificación: build 0 + Unit 316/316 + Security 74/74 + Integration 92/99 (7 Docker-only excluidos: sin daemon local, igual que `04-01`) + Contract 4/4 + `critic PASS` + `endpoints OK (56)`; Stryker local `stryker-0402.json` (UnitTest + `test-case-filter FullyQualifiedName~UnitTest.` para excluir Docker) → **90.85%** (142 mutantes; 13 equivalentes: guardas misma-excepción, bloques fail-closed, guarda `<=0`, estado inalcanzable).
 - Lecciones: S1135 caza `todo` en minúsculas dentro de comentarios (redecir "cada hash…"); S101 exige `Argon2Id` (D mayúscula); `dotnet ef` sin factory falla (DbContext sin `OnConfiguring`) → factory temporal + borrar; migración con `_` rompe CA1707 → renombrar a `SegBloqueo0402`; BCrypt no fluye transitivo a UnitTest → `PackageReference` directa; bloquear por `SegUsuario` no cubre desconocidos → tabla por nombre; Stryker corre los 5 proyectos de test (478 tests, 9 Docker-fallos) → `test-case-filter FullyQualifiedName~UnitTest.` (5 min vs 75 min); mutante string `"m="→""` sobrevive porque `AsSpan(2)` compensa (longitud del prefijo): matarlo exige hashes crafteados con prefijo contrabandeado; `Verify` fail-closed con `catch when` ante hashes corruptos (nunca 500).
-- Estado spec: 🚧 Borrador con evidencia (pendiente 1 revisor + `@security-reviewer` pre-push).
+- Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).
 
 ## Reconciliación .md 04-02 (2026-10-09, solo docs)
 - `README.md` (lockout persistente `SegBloqueo` 15min; 2FA-temp 120s como deuda), `01-04/spec.md` (+`PasswordHasher:MemoryKBytes/Iterations`, aditivo sin cambio de estado, precedente `04-01`), skills `04-security-core`/`03-auth-endpoints`/`deferred-scope-fakes` (realidad `04-02` + swap como precedente). Specs firmados de fase 03 y `05-01` intactos (siguen factuales: `attempts:/lockout:` viven en 2FA).
@@ -570,7 +570,7 @@
 ## Cierre PR #21 phase04.2 mergeado a main (2026-10-09)
 - Merge `418eefc` (PR #21 `phase04.2` → `main`, mergeado vía web): T1+T2 `04-02` (`ccfe5bb`: Argon2id + `NeedsRehash` + lockout `SegBloqueo` 15min + tests + Stryker 90.85%) + conciliación `.md` (`b01b211`: cifras finales + bullet Argon2id).
 - `main` local sincronizado en `418eefc` (fast-forward, working tree limpio).
-- Nota: `gh` local tenía token expirado (401) → PR creado/mergeado vía web; re-autenticado con `gh auth login` tras el merge. Spec `04-02` sigue 🚧 Borrador con evidencia (pendiente 1 revisor para firma).
+- Nota: `gh` local tenía token expirado (401) → PR creado/mergeado vía web; re-autenticado con `gh auth login` tras el merge. Spec `04-02` → ✅ Aprobado (@usuario, 10-Oct-2026).
 
 ## T1 — 04-03 HTTP Hardening ejecutado (2026-10-10)
 - Middleware único `SecurityHeadersMiddleware.cs` (`NonceItemKey="CspNonce"`, 4 headers siempre + CSP con nonce 16B Base64, exención `scalar`/`openapi` early-exit sin nonce); inserción outermost absoluta (antes de `DeveloperExceptionPage`, cubre 403/500; orden `01-02` aditivo); HSTS 365d solo `MaxAge` vía `AddHsts` (`UseHsts()` sin overload con options en esta versión; gate no-Dev intacto, sin `IncludeSubDomains`/preload).
@@ -578,7 +578,7 @@
 - Tests: `SecurityHeadersTests` 10 (2 nulos, headers+CSP+nonce 16B, unicidad, `Theory` 5 exentas, set-antes-de-`_next`) + `HeaderTests` 3 (`/health` con headers, 403 sonda `Staging` con headers, `HstsOptions` 365d); 403 ownership intacto (`VentaDetalleService.cs:203` + sonda, sin tocar `ExceptionHandlingMiddleware`).
 - Verificación: build 0/0 + Unit 326/326 (316+10) + Security 77/77 (74+3) + Integration 92/99 (7 Docker-only: Docker Desktop detenido, `com.docker.service` no arranca en sesión, igual que `04-02`, 0 regresiones) + Contract 4/4 + `critic PASS` + `endpoints OK (56)`; Stryker local `stryker-0403.json` (solo slice, `ignore-mutations Boolean`, break 80) → **100.00%** (18 mutantes) + `dotnet build` restaurativo + re-test filtro verde.
 - Lecciones: `UseHsts(Action<HstsOptions>)` no existe → configurar por `AddHsts`; S3358 prohíbe ternaria anidada en helpers de test (extraer `GetHeader`); `HstsOptions` vive en `Microsoft.AspNetCore.HttpsPolicy` (no `Builder`); `Start-Service com.docker.service` falla sin permisos → baseline Docker-only documentado como en `04-02`.
-- Estado spec: 🚧 Borrador con evidencia (pendiente 1 revisor + `@security-reviewer` pre-push).
+- Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).
 
 ## Reconciliación .md 04-03 (2026-10-10, solo docs)
 - `README.md` (orden de middleware: `SecurityHeadersMiddleware` outermost + HSTS 365d vía `AddHsts`); skill `04-security-core` (+realidad `04-03`: middleware único outermost sin `OnStarting`, HSTS por opciones en factory `Production`).
@@ -586,6 +586,16 @@
 - Verificación: `critic PASS`.
 
 ## Cierre PR #23 phase04.3 mergeado a main (2026-10-10)
-- Merge `4d7c08f` (PR #23 `phase04.3` → `main`, mergeado vía web): T1–T4 `04-03` (`8b620f6`: `SecurityHeadersMiddleware` + HSTS 365d + tests + Stryker 100%) + reconciliación `.md` (`README`, skill `04-security-core`, `Memoria`).
+- Merge `4d7c08f` (PR #23 `phase04.3` → `main`, mergeado vía web): T1—T4 `04-03` (`8b620f6`: `SecurityHeadersMiddleware` + HSTS 365d + tests + Stryker 100%) + reconciliación `.md` (`README`, skill `04-security-core`, `Memoria`).
 - `main` local sincronizado en `4d7c08f` (fast-forward, working tree limpio).
-- Spec `04-03` sigue 🚧 Borrador con evidencia (pendiente 1 revisor para firma).
+- Spec `04-03` → ✅ Aprobado (@usuario, 10-Oct-2026).
+
+## T1 — 04-04 Rate Limit & Auth Matrix ejecutado (2026-10-10)
+- Alcance ampliado cerrado con usuario (task pedía solo doc): doc + código + tests; SlidingWindow por IP + 429 JSON uniforme; relajación vía `PERF_RATELIMIT_MULTIPLIER`.
+- Código: `Services/RateLimitOptions.cs` (defaults spec + `ApplyMultiplier` con clamp + `*PolicyName` consts para atributos); `Program.cs` (`AddRateLimiter` 5 policies `QueueLimit=0` + `OnRejected` 429 `ErrorResponse` sin Detail + `Retry-After` best-effort; `UseRateLimiter` antes de `UseAuthentication`); `[EnableRateLimiting]` en 16 controllers (9×`Admin` a nivel clase, auth anónimas/Bearer con `Login`/`Login2faVerify`/`Global`, `Venta`/`VentaDetalle` clase `Global` + override `ConcurrentWrites` en POST/DELETE); sección `RateLimiting` en `appsettings.Example.json` (env `PERF_*` fuera del JSON por `AppSettingsTests`).
+- Doc: `docs/rate-limit-matrix.md` nueva (49 filas + exclusiones ping/health/probe/provider-states + evidencia); `endpoints.md` enlaza (columna ahora = policy vigente); spec/plan/task `04-04` conciliados (corregido `AdminOnly` → `AdminPolicy`); `01-04/spec.md` +7 filas (`RateLimiting:*`, `PERF_RATELIMIT_MULTIPLIER`).
+- Tests: `SecurityTest/RateLimit` (4: 429 en Login/Global/Admin + estructural reflection toda-action-con-policy salvo `PingController`) + `UnitTest/RateLimit` (4: defaults/multiplier/clamp/nombres) + asserts `RateLimiting` en `AppSettingsTests`; colaterales con límite elevado vía config (`IntegrationTest/Login.FiveFailuresThenLockedOut`, `SecurityTest/Login.RepeatedUnknownFailuresLockOut`, aserciones intactas).
+- Bugs cazados por tests nuevos: (1) lectura eager de `builder.Configuration` en registro no ve overrides de `WebApplicationFactory` (el 429 no disparaba con límites de test; el lockout-test con límite 100 devolvía 429 = prueba) → `IOptionsMonitor` lazy en el particionador (tercera instancia de la lección Redis 05-01/DbContext 02-02); (2) metadata `RetryAfter` ausente en rechazo SlidingWindow → header best-effort, sin assert.
+- Verificación: build 0/0; Unit 330/330; Security 81/81; Integration 99/99 (92+7 tras arrancar Docker Desktop detenido, como en 03-02/03-11); Contract 4/4; Database 2/2; `critic PASS`; `endpoints OK (56)`.
+- Lecciones: CA2000 en `new WebApplicationFactory<Program>().WithWebHostBuilder(...)` inline → pragma como en `CreateAdminFactory`; `EnableRateLimiting` de action prevalece sobre el de clase (verificado empíricamente por los 429).
+- Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).

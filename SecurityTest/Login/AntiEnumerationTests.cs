@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 
 namespace SecurityTest.Login
 {
@@ -51,7 +53,14 @@ namespace SecurityTest.Login
         [Fact]
         public async Task RepeatedUnknownFailuresLockOut()
         {
-            using var factory = new WebApplicationFactory<Program>();
+            // (04-04) El flujo emite 6 logins; eleva el límite para no colisionar con la policy Login 5/5min.
+#pragma warning disable CA2000 // La factory interior se dispone con el wrapper.
+            using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.ConfigureAppConfiguration(
+#pragma warning restore CA2000
+                (_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["RateLimiting:LoginPermitLimit"] = "100",
+                })));
             using var client = factory.CreateClient();
 
             for (var i = 0; i < 5; i++)
