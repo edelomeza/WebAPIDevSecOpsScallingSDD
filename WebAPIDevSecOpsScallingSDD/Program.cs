@@ -242,6 +242,8 @@ namespace WebAPIDevSecOpsScallingSDD
                 var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
                 options.AddDefaultPolicy(policy => policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod());
             });
+            // (04-03) HSTS 365d solo MaxAge, sin IncludeSubDomains/preload. Se aplica en UseHsts() no-Dev.
+            services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
         }
     }
 
@@ -253,6 +255,9 @@ namespace WebAPIDevSecOpsScallingSDD
         public static void UseWebApiDevSecOpsPipeline(this WebApplication app)
         {
             ArgumentNullException.ThrowIfNull(app);
+            // (04-03) SecurityHeaders lo mas externo: cubre DeveloperExceptionPage y errores 403/500 via OnStarting. Orden 01-02 intacto (aditivo).
+            app.UseMiddleware<Middleware.SecurityHeadersMiddleware>();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

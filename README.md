@@ -144,8 +144,10 @@ only, gated by `EnableProviderStates`), `/scalar` + `/openapi`
 (Development only), `POST /provider-states` (non-prod, gated by
 `EnableProviderStates`).
 
-Middleware order (`Program.cs`): `ExceptionHandlingMiddleware` (single
-try/catch, uniform `ErrorResponse`) → ForwardedHeaders → HSTS (non-Dev) →
+Middleware order (`Program.cs`): `SecurityHeadersMiddleware` (outermost,
+4 headers + CSP nonce; `scalar`/`openapi` exempt from CSP) →
+`ExceptionHandlingMiddleware` (single try/catch, uniform `ErrorResponse`)
+→ ForwardedHeaders → HSTS 365d (non-Dev, `MaxAge` via `AddHsts`) →
 HttpsRedirection → CORS → OpenApi/Scalar (Dev) → Authentication →
 Authorization → Controllers → HealthChecks.
 
