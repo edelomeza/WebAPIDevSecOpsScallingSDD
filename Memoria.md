@@ -566,3 +566,8 @@
 ## Reconciliación .md 04-02 (2026-10-09, solo docs)
 - `README.md` (lockout persistente `SegBloqueo` 15min; 2FA-temp 120s como deuda), `01-04/spec.md` (+`PasswordHasher:MemoryKBytes/Iterations`, aditivo sin cambio de estado, precedente `04-01`), skills `04-security-core`/`03-auth-endpoints`/`deferred-scope-fakes` (realidad `04-02` + swap como precedente). Specs firmados de fase 03 y `05-01` intactos (siguen factuales: `attempts:/lockout:` viven en 2FA).
 - Verificación: `AppSettingsTests` 3/3 + `critic PASS`.
+
+## Cierre PR #21 phase04.2 mergeado a main (2026-10-09)
+- Merge `418eefc` (PR #21 `phase04.2` → `main`, mergeado vía web): T1+T2 `04-02` (`ccfe5bb`: Argon2id + `NeedsRehash` + lockout `SegBloqueo` 15min + tests + Stryker 90.85%) + conciliación `.md` (`b01b211`: cifras finales + bullet Argon2id).
+- `main` local sincronizado en `418eefc` (fast-forward, working tree limpio).
+- Nota: `gh` local tenía token expirado (401) → PR creado/mergeado vía web; re-autenticado con `gh auth login` tras el merge. Spec `04-02` sigue 🚧 Borrador con evidencia (pendiente 1 revisor para firma).
