@@ -9,6 +9,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -18,6 +19,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/ventas/detalles")]
     [Authorize]
+    [EnableRateLimiting(Services.RateLimitOptions.GlobalPolicyName)]
     public sealed class VentaDetalleController : ControllerBase
     {
         private readonly IVentaDetalleService _service;
@@ -58,6 +60,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         }
 
         [HttpPost("~/api/v{version:apiVersion}/ventas/{idVenta:int}/detalles")]
+        [EnableRateLimiting(Services.RateLimitOptions.ConcurrentWritesPolicyName)]
         public async Task<ActionResult<VenVentaDetalleDto>> Create(int idVenta, VenVentaDetalleCreateDto dto, CancellationToken cancellationToken)
         {
             var failures = await ValidateAsync(_createValidator, dto, cancellationToken).ConfigureAwait(false);
@@ -73,6 +76,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
         }
 
         [HttpDelete("{id:int}")]
+        [EnableRateLimiting(Services.RateLimitOptions.ConcurrentWritesPolicyName)]
         public async Task<ActionResult> Delete(int id, [FromBody] VenVentaDetalleDeleteDto dto, CancellationToken cancellationToken)
         {
             if (dto.id != id)

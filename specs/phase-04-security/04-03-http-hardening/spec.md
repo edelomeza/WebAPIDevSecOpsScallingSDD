@@ -31,7 +31,7 @@ Cabeceras de seguridad y HSTS endurecido sobre el pipeline `01-02`. **Depende de
 - Sin `IncludeSubDomains`/preload (decisión); rate-limit (`04-04`) y Serilog/OTel (fase 08) fuera de alcance.
 
 ## Aprobación y Control de Cambios
-- **Estado:** 🚧 Borrador con evidencia (ver Criterios)
-- **Revisores:** —
+- **Estado:** ✅ Aprobado
+- **Revisores:** @usuario (1 Revisor)
 - **Fecha:** 10-Oct-2026
-- **Detalle:** implementado según plan; pendiente 1 revisor + `@security-reviewer` pre-push.
+- **Detalle:** implementado según plan; revisado y aprobado por @usuario (ver Criterios como evidencia).

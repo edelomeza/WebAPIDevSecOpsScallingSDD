@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
@@ -13,9 +14,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.RateLimiting;
 using WebAPIDevSecOpsScallingSDD;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -244,6 +248,77 @@ namespace WebAPIDevSecOpsScallingSDD
             });
             // (04-03) HSTS 365d solo MaxAge, sin IncludeSubDomains/preload. Se aplica en UseHsts() no-Dev.
             services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
+            // (04-04) Rate limiting: 5 policies SlidingWindow/concurrencia por IP; 429 uniforme en OnRejected.
+            // Opciones vía IOptionsMonitor con resolución lazy en runtime (misma lección que Redis/DbContext:
+            // builder.Configuration aún no incluye los overrides de WebApplicationFactory durante el registro).
+            // Relajación solo perf vía env PERF_RATELIMIT_MULTIPLIER (entero >1 multiplica todos los límites).
+            services.AddOptions<Services.RateLimitOptions>()
+                .BindConfiguration(Services.RateLimitOptions.SectionName)
+                .PostConfigure(options =>
+                {
+                    var multiplierRaw = Environment.GetEnvironmentVariable("PERF_RATELIMIT_MULTIPLIER");
+                    if (int.TryParse(multiplierRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var rateLimitMultiplier) && rateLimitMultiplier > 1)
+                    {
+                        options.ApplyMultiplier(rateLimitMultiplier);
+                    }
+                });
+
+            services.AddRateLimiter(limiter =>
+            {
+                limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                limiter.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    context.HttpContext.Response.ContentType = "application/json";
+                    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                    {
+                        context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+                    }
+
+                    var rejected = new Dtos.ErrorResponse
+                    {
+                        Error = "Demasiadas solicitudes. Intente de nuevo más tarde.",
+                        Status = StatusCodes.Status429TooManyRequests,
+                        TraceId = context.HttpContext.TraceIdentifier,
+                    };
+                    await context.HttpContext.Response.WriteAsync(JsonSerializer.Serialize(rejected), cancellationToken).ConfigureAwait(false);
+                };
+                limiter.AddPolicy(Services.RateLimitOptions.LoginPolicyName, context => RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: PartitionKey(context),
+                    factory: _ => SlidingWindow(Options(context).LoginPermitLimit, Options(context).LoginWindowSeconds, 5)));
+                limiter.AddPolicy(Services.RateLimitOptions.Login2faPolicyName, context => RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: PartitionKey(context),
+                    factory: _ => SlidingWindow(Options(context).Login2faPermitLimit, Options(context).Login2faWindowSeconds, 5)));
+                limiter.AddPolicy(Services.RateLimitOptions.GlobalPolicyName, context => RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: PartitionKey(context),
+                    factory: _ => SlidingWindow(Options(context).GlobalPermitLimit, Options(context).GlobalWindowSeconds, 4)));
+                limiter.AddPolicy(Services.RateLimitOptions.AdminPolicyName, context => RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: PartitionKey(context),
+                    factory: _ => SlidingWindow(Options(context).AdminPermitLimit, Options(context).AdminWindowSeconds, 4)));
+                limiter.AddPolicy(Services.RateLimitOptions.ConcurrentWritesPolicyName, context => RateLimitPartition.GetConcurrencyLimiter(
+                    partitionKey: PartitionKey(context),
+                    factory: _ => new ConcurrencyLimiterOptions { PermitLimit = SafePermit(Options(context).ConcurrentWritesPermitLimit), QueueLimit = 0 }));
+            });
+        }
+
+        private static Services.RateLimitOptions Options(HttpContext context) =>
+            context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<Services.RateLimitOptions>>().CurrentValue;
+
+        private static string PartitionKey(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        private static int SafePermit(int value) => Math.Max(1, value);
+
+        private static int SafeWindow(int seconds) => Math.Max(1, seconds);
+
+        private static SlidingWindowRateLimiterOptions SlidingWindow(int permitLimit, int windowSeconds, int segments)
+        {
+            return new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = SafePermit(permitLimit),
+                Window = TimeSpan.FromSeconds(SafeWindow(windowSeconds)),
+                SegmentsPerWindow = segments,
+                QueueLimit = 0,
+            };
         }
     }
 
@@ -284,6 +359,9 @@ namespace WebAPIDevSecOpsScallingSDD
                 app.MapOpenApi();
                 app.MapScalarApiReference();
             }
+
+            // (04-04) RateLimiter antes de Auth (orden constitucional); solo actúa en endpoints con [EnableRateLimiting].
+            app.UseRateLimiter();
 
             app.UseAuthentication();
             app.UseAuthorization();

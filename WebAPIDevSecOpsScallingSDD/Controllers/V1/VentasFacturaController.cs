@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebAPIDevSecOpsScallingSDD.Dtos;
 using WebAPIDevSecOpsScallingSDD.Services;
 
@@ -12,6 +13,7 @@ namespace WebAPIDevSecOpsScallingSDD.Controllers.V1
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/ventas/factura")]
     [Authorize(Policy = "AdminPolicy")]
+    [EnableRateLimiting(Services.RateLimitOptions.AdminPolicyName)]
     public sealed class VentasFacturaController : ControllerBase
     {
         private readonly IVentasFacturaService _service;
