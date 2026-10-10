@@ -584,3 +584,8 @@
 - `README.md` (orden de middleware: `SecurityHeadersMiddleware` outermost + HSTS 365d vía `AddHsts`); skill `04-security-core` (+realidad `04-03`: middleware único outermost sin `OnStarting`, HSTS por opciones en factory `Production`).
 - Intactos con motivo: `01-02/spec.md` (✅ Aprobado — specs firmados no se tocan, precedente `04-02`; el slot 🚧 Fase 04 lo cubre el delta `04-03`); `01-04/spec.md` (`AddHsts` es solo código, sin claves nuevas en `appsettings`); `04-05/spec.md` (ya declara HSTS 365d + CSP nonce como Cubierto); `docs/endpoints.md` (sin rutas nuevas); `AGENTS.md` §6 (resumen vigente); `.specify/memory/constitution.md` (orden aspiracional con `CspNonce` separada — artefacto del flujo spec-kit, no usado en esta rama; reconciliar aparte si se adopta).
 - Verificación: `critic PASS`.
+
+## Cierre PR #23 phase04.3 mergeado a main (2026-10-10)
+- Merge `4d7c08f` (PR #23 `phase04.3` → `main`, mergeado vía web): T1–T4 `04-03` (`8b620f6`: `SecurityHeadersMiddleware` + HSTS 365d + tests + Stryker 100%) + reconciliación `.md` (`README`, skill `04-security-core`, `Memoria`).
+- `main` local sincronizado en `4d7c08f` (fast-forward, working tree limpio).
+- Spec `04-03` sigue 🚧 Borrador con evidencia (pendiente 1 revisor para firma).
