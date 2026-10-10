@@ -599,3 +599,10 @@
 - Verificación: build 0/0; Unit 330/330; Security 81/81; Integration 99/99 (92+7 tras arrancar Docker Desktop detenido, como en 03-02/03-11); Contract 4/4; Database 2/2; `critic PASS`; `endpoints OK (56)`.
 - Lecciones: CA2000 en `new WebApplicationFactory<Program>().WithWebHostBuilder(...)` inline → pragma como en `CreateAdminFactory`; `EnableRateLimiting` de action prevalece sobre el de clase (verificado empíricamente por los 429).
 - Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).
+
+## T1 — 04-05 OWASP ASVS L2 ejecutado (2026-10-10)
+- Doc-only sin código: `docs/asvs-l2-checklist.md` nueva (10 capítulos V1–V9+V14, 6×Cubierto + 4×Parcial con deuda explícita de 04-01/04-02/04-03; cada fila con evidencia archivo+test resoluble; exclusiones ping/health/probe/L3).
+- Correcciones al spec: `Contratos` ya no duplica la tabla (enlaza al doc canónico, `drift-guards`); `AdminOnly+AdminPolicy` → `AdminPolicy` real; `spec/task` firmados a ✅ Aprobado (@usuario, 10-Oct-2026, sin cambios sobre la evidencia).
+- Parciales honestos: V2 (`NeedsRehash` sin escritura, temp-2FA 120s), V3 (blacklist TTL 120s), V7 (`audit hash chain` fase 08), V9 (HSTS wire no verificable en `WebApplicationFactory`).
+- Verificación: build 0/0 + `critic PASS` + `endpoints OK (56)`; suites heredadas de 04-04 (Unit 330/330, Security 81/81, Integration 99/99, Contract 4/4, Database 2/2) sin regresión posible (sin código nuevo).
+- Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).
