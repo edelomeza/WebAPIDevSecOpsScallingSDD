@@ -6,6 +6,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using WebAPIDevSecOpsScallingSDD.Context;
 using WebAPIDevSecOpsScallingSDD.Dtos;
+using WebAPIDevSecOpsScallingSDD.Events;
 using WebAPIDevSecOpsScallingSDD.Services;
 using WebAPIDevSecOpsScallingSDD.Validators;
 using ClienteModel = WebAPIDevSecOpsScallingSDD.Models.CliCliente;
@@ -22,15 +23,16 @@ namespace UnitTest.VentasPago
             using var context = CreateContext();
             var cache = new FakeCacheService();
 
-            Assert.Throws<ArgumentNullException>(() => new VentasPagoService(null!, cache));
-            Assert.Throws<ArgumentNullException>(() => new VentasPagoService(context, null!));
+            Assert.Throws<ArgumentNullException>(() => new VentasPagoService(null!, cache, new FakePagoEventPublisher()));
+            Assert.Throws<ArgumentNullException>(() => new VentasPagoService(context, null!, new FakePagoEventPublisher()));
+            Assert.Throws<ArgumentNullException>(() => new VentasPagoService(context, cache, null!));
         }
 
         [Fact]
         public async Task NullDtoThrowsArgumentNull()
         {
             await using var context = CreateContext();
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.CreateAsync(null!));
         }
@@ -40,7 +42,7 @@ namespace UnitTest.VentasPago
         {
             await using var context = CreateContext();
             SeedBase(context);
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             var dto = new PagoCreateDto { idVenPedido = Guid.NewGuid(), decMonto = 10m };
 
@@ -54,7 +56,7 @@ namespace UnitTest.VentasPago
         {
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m, strIdTransaccion = "TX-1" });
 
@@ -68,7 +70,7 @@ namespace UnitTest.VentasPago
         {
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             var first = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m });
             var second = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 5m });
@@ -84,7 +86,7 @@ namespace UnitTest.VentasPago
         {
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             var created = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m, strIdTransaccion = "   " });
 
@@ -96,9 +98,10 @@ namespace UnitTest.VentasPago
         public async Task CreatePersistsEstadoFechaCachesAndVersion()
         {
             var cache = new FakeCacheService();
+            var publisher = new FakePagoEventPublisher();
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, cache);
+            var service = new VentasPagoService(context, cache, publisher);
 
             var created = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 99.99m, strMetodoPago = "  Efectivo ", strIdTransaccion = " TX-ABC " });
 
@@ -117,6 +120,10 @@ namespace UnitTest.VentasPago
             Assert.Equal("Procesado", fetched.strEstado);
             Assert.Contains(cache.Keys, key => key == $"cache:pago:{created.id}");
             Assert.All(cache.Ttls, ttl => Assert.Equal(TimeSpan.FromSeconds(60), ttl));
+            var published = Assert.Single(publisher.Published);
+            Assert.Equal(pedidoId, published.PedidoId);
+            Assert.Equal("TX-ABC", published.IdTransaccion);
+            Assert.Equal(99.99m, published.Monto);
         }
 
         [Fact]
@@ -125,7 +132,7 @@ namespace UnitTest.VentasPago
             var cache = new FakeCacheService();
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, cache);
+            var service = new VentasPagoService(context, cache, new FakePagoEventPublisher());
 
             await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m });
             await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 20m });
@@ -139,7 +146,7 @@ namespace UnitTest.VentasPago
             var cache = new FakeCacheService();
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, cache);
+            var service = new VentasPagoService(context, cache, new FakePagoEventPublisher());
 
             Assert.Null(await service.GetByIdAsync(999999));
 
@@ -165,7 +172,7 @@ namespace UnitTest.VentasPago
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
             var otherPedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, cache);
+            var service = new VentasPagoService(context, cache, new FakePagoEventPublisher());
 
             var first = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m, strIdTransaccion = "TX-A" });
             var second = await service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 20m, strIdTransaccion = "TX-B" });
@@ -194,7 +201,7 @@ namespace UnitTest.VentasPago
             var cache = new FakeCacheService();
             await using var context = CreateContext();
             var pedidoId = SeedPedido(context);
-            var service = new VentasPagoService(context, cache);
+            var service = new VentasPagoService(context, cache, new FakePagoEventPublisher());
 
             var pagos = await service.GetByPedidoIdAsync(pedidoId);
 
@@ -221,7 +228,7 @@ namespace UnitTest.VentasPago
             await using var context = CreateThrowingContext(new DbUpdateConcurrencyException("boom"));
             var pedidoId = SeedPedido(context);
             context.ThrowOnSave = true;
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             var ex = await Assert.ThrowsAsync<ConcurrencyConflictException>(() => service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m }));
             Assert.Equal("El pago fue modificado por otro proceso.", ex.Message);
@@ -233,7 +240,7 @@ namespace UnitTest.VentasPago
             await using var context = CreateThrowingContext(new DbUpdateException("boom", new InvalidOperationException("inner")));
             var pedidoId = SeedPedido(context);
             context.ThrowOnSave = true;
-            var service = new VentasPagoService(context, new FakeCacheService());
+            var service = new VentasPagoService(context, new FakeCacheService(), new FakePagoEventPublisher());
 
             var ex = await Assert.ThrowsAsync<ConcurrencyConflictException>(() => service.CreateAsync(new PagoCreateDto { idVenPedido = pedidoId, decMonto = 10m }));
             Assert.Equal("El pago fue modificado por otro proceso.", ex.Message);
@@ -296,6 +303,20 @@ namespace UnitTest.VentasPago
                 }
 
                 return await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private sealed class FakePagoEventPublisher : IPagoEventPublisher
+        {
+            private readonly List<PagoProcesadoEvent> _published = new();
+
+            public IReadOnlyList<PagoProcesadoEvent> Published => _published;
+
+            public Task PublishProcesadoAsync(PagoProcesadoEvent evt, CancellationToken cancellationToken = default)
+            {
+                ArgumentNullException.ThrowIfNull(evt);
+                _published.Add(evt);
+                return Task.CompletedTask;
             }
         }
 

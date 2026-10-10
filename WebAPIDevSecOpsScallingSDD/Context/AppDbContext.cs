@@ -28,6 +28,7 @@ namespace WebAPIDevSecOpsScallingSDD.Context
         public DbSet<VenPedidoPago> VenPedidoPagos => Set<VenPedidoPago>();
         public DbSet<VenVenta> VenVentas => Set<VenVenta>();
         public DbSet<VenVentaDetalle> VenVentaDetalles => Set<VenVentaDetalle>();
+        public DbSet<VenEventoProcesado> VenEventosProcesados => Set<VenEventoProcesado>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +52,8 @@ namespace WebAPIDevSecOpsScallingSDD.Context
             modelBuilder.Entity<VenPedidoPago>().HasIndex(e => e.strIdTransaccion).IsUnique();
             modelBuilder.Entity<SegBloqueo>().HasIndex(e => e.strNombre).IsUnique();
             modelBuilder.Entity<VenPedidoFactura>().HasIndex(e => e.strFolioFactura).IsUnique();
+            // (06-01) Idempotencia del bus: un (evento, pedido) se procesa una sola vez.
+            modelBuilder.Entity<VenEventoProcesado>().HasIndex(e => new { e.strNombreEvento, e.idPedido }).IsUnique();
         }
 
         public override int SaveChanges()

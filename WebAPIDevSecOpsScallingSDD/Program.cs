@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -181,9 +182,10 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<Services.IVentaDetalleService, Services.VentaDetalleService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.VenVentaDetalleCreateDto>, Validators.VenVentaDetalleCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.VenVentaDetalleDeleteDto>, Validators.VenVentaDetalleDeleteValidator>();
-            services.AddScoped<Services.IPedidoEventPublisher, Services.FakePedidoEventPublisher>();
+            services.AddScoped<Services.IPedidoEventPublisher, Services.MassTransitPedidoEventPublisher>();
+            services.AddScoped<Services.IEventBus, Services.MassTransitEventBus>();
+            services.AddScoped<Services.IPagoEventPublisher, Services.MassTransitPagoEventPublisher>();
             services.AddScoped<Services.IVentasPedidoService, Services.VentasPedidoService>();
-            services.AddScoped<Services.StockValidatorConsumer>();
             services.AddScoped<FluentValidation.IValidator<Dtos.PedidoCreateDto>, Validators.PedidoCreateValidator>();
             services.AddScoped<Services.IVentasPagoService, Services.VentasPagoService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.PagoCreateDto>, Validators.PagoCreateValidator>();
@@ -299,7 +301,50 @@ namespace WebAPIDevSecOpsScallingSDD
                     partitionKey: PartitionKey(context),
                     factory: _ => new ConcurrencyLimiterOptions { PermitLimit = SafePermit(Options(context).ConcurrentWritesPermitLimit), QueueLimit = 0 }));
             });
+            // (06-01) Bus MassTransit: InMemory local/test, SQS FIFO+DLQ en prod por flag Transport.
+            // Transport se lee aquí (post-override en WebApplicationFactory, precedente 04-01 UseJwtBearer).
+            // SQS: credenciales solo por cadena IAM/rol (nunca literales); colas *.fifo; redrive DLQ
+            // (MaxReceiveCount) se aprovisiona en fase 09; MassTransit deriva fallos a colas *_error.
+            var transport = configuration.GetValue("Transport", "InMemory");
+            var sqsRegion = configuration.GetValue("Sqs:Region", string.Empty);
+            var sqsScope = configuration.GetValue("Sqs:Scope", string.Empty);
+            if (string.Equals(transport, "SQS", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(sqsRegion))
+            {
+                throw new InvalidOperationException("Sqs:Region is required when Transport is SQS.");
+            }
+
+            services.AddMassTransit(bus =>
+            {
+                bus.AddConsumers(typeof(Consumers.StockValidatorConsumer).Assembly);
+                if (string.Equals(transport, "SQS", StringComparison.OrdinalIgnoreCase))
+                {
+                    bus.UsingAmazonSqs((context, sqs) =>
+                    {
+                        sqs.Host(sqsRegion, _ => { });
+                        sqs.UseMessageRetry(retry => retry.Exponential(5, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(500)));
+                        sqs.ReceiveEndpoint(QueueName(sqsScope, "saga-stock-validator.fifo"), endpoint => endpoint.ConfigureConsumer<Consumers.StockValidatorConsumer>(context));
+                        sqs.ReceiveEndpoint(QueueName(sqsScope, "saga-pago.fifo"), endpoint => endpoint.ConfigureConsumer<Consumers.PagoConsumer>(context));
+                        sqs.ReceiveEndpoint(QueueName(sqsScope, "saga-factura.fifo"), endpoint => endpoint.ConfigureConsumer<Consumers.FacturaConsumer>(context));
+                        sqs.ReceiveEndpoint(QueueName(sqsScope, "saga-compensation.fifo"), endpoint => endpoint.ConfigureConsumer<Consumers.CompensationConsumer>(context));
+                    });
+                }
+                else
+                {
+                    // MassTransit admite una sola fábrica de bus por registro (segundo SetBusFactory lanza).
+                    bus.UsingInMemory((context, inmemory) =>
+                    {
+                        // Horizonte amplio a propósito: PagoConsumer y FacturaConsumer compiten por
+                        // PagoProcesadoEvent y, bajo contención, la factura puede llegar antes de que
+                        // el cobro avance (reintento, no rechazo; ver FacturaConsumer).
+                        inmemory.UseMessageRetry(retry => retry.Exponential(5, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(500)));
+                        inmemory.ConfigureEndpoints(context);
+                    });
+                }
+            });
         }
+
+        private static string QueueName(string? scope, string baseName) =>
+            string.IsNullOrWhiteSpace(scope) ? baseName : scope + "-" + baseName;
 
         private static Services.RateLimitOptions Options(HttpContext context) =>
             context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<Services.RateLimitOptions>>().CurrentValue;

@@ -13,7 +13,7 @@ En cada controller nuevo; al mapear una excepción de dominio; al escribir `Inte
 
 ## Pasos
 
-1. `ExceptionHandlingMiddleware` (ÚNICO try/catch del repo) + `ErrorResponse` (`Error/Status/TraceId`, `Detail` solo no-prod, omitido en prod) + tipos `NotFoundException`/`ForbiddenAccessException`. Pipeline: middleware primero, fuera `UseExceptionHandler` no-Dev (orden `01-02` intacto).
+1. `ExceptionHandlingMiddleware` (ÚNICO try/catch de dominio del repo) + `ErrorResponse` (`Error/Status/TraceId`, `Detail` solo no-prod, omitido en prod) + tipos `NotFoundException`/`ForbiddenAccessException`. Pipeline post-`04-03`: lo primero es `SecurityHeadersMiddleware` outermost absoluta (antes de `DeveloperExceptionPage`, cubre 403/500), ExceptionHandling va después; fuera `UseExceptionHandler` no-Dev (orden `01-02` aditivo, ver `phases/04-security-core`). `OnRejected` 429 de rate-limit reutiliza el mismo `ErrorResponse` sin Detail + `Retry-After` best-effort.
 2. Purga en controllers: CERO try/catch de dominio (8 purgados en `03-16`); `21 NotFound() → throw NotFoundException`; ownership `EnsureOwner → throw ForbiddenAccessException → 403` (no `return Forbid/NotFound`). Único outlier: `EmpEmpleado` FK servicio `400 → 422`.
 3. Sondas `GET /api/v1/probe/{timeout,error,forbidden}` gateadas por `EnableProviderStates` + no-prod (no existen en prod).
 4. Tests: `10` factories de integración a `Staging` (en `Dev` la página de excepciones devolvería HTML); `Production` exige override `UseInMemoryDatabase=true`. `IntegrationTest/Errors 8/8` (+37/37 resto; `55/56` solo por Redis-Docker ambiental).

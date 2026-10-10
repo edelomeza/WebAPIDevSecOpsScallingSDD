@@ -134,6 +134,13 @@ namespace WebAPIDevSecOpsScallingSDD.Services
             }
 
             await InvalidateAsync(pedido.id, cancellationToken).ConfigureAwait(false);
+
+            var created = await _db.VenPedidos.AsNoTracking().FirstAsync(e => e.id == pedido.id, cancellationToken).ConfigureAwait(false);
+            var createdDetalles = await _db.VenPedidoDetalles.AsNoTracking().Where(d => d.idVenPedido == pedido.id).OrderBy(d => d.id).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var response = ToDto(created, createdDetalles);
+
+            // La respuesta se materializa ANTES de publicar: el bus procesa en segundo plano y la
+            // respuesta POST es determinista ("Creado"); el avance de la saga se observa vía GET.
             await _publisher.PublishAsync(new PedidoCreadoEvent
             {
                 PedidoId = pedido.id,
@@ -141,9 +148,7 @@ namespace WebAPIDevSecOpsScallingSDD.Services
                 Total = pedido.decTotal,
             }, cancellationToken).ConfigureAwait(false);
 
-            var created = await _db.VenPedidos.AsNoTracking().FirstAsync(e => e.id == pedido.id, cancellationToken).ConfigureAwait(false);
-            var createdDetalles = await _db.VenPedidoDetalles.AsNoTracking().Where(d => d.idVenPedido == pedido.id).OrderBy(d => d.id).ToListAsync(cancellationToken).ConfigureAwait(false);
-            return ToDto(created, createdDetalles);
+            return response;
         }
 
         private static async Task EnsureExistsAsync<T>(IQueryable<T> query, int id, string nombre, CancellationToken cancellationToken)

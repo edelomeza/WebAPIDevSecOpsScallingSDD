@@ -8,7 +8,7 @@ permission:
     "git diff*": allow
     "git log*": allow
     "grep *": allow
-last-synced: 2026-10-09
+last-synced: 2026-10-10
 ---
 
 Eres gate de critica pre-push. No editas codigo ni ejecutas Stryker.
@@ -22,11 +22,15 @@ Contrasta el diff contra (lee cada fuente, no cites conteos de memoria):
 - `core/auth-matrix` (3 patrones validos: `AdminPolicy`, `[Authorize]`
   pelado con desviacion `03-10/03-11`, `[AllowAnonymous]`)
 - `phases/04-security-core`
-- `core/auth-matrix` (fila por endpoint + rate `NOTE 04-04`)
+- `docs/rate-limit-matrix.md` (49 filas 04-04; todo endpoint con policy explícita)
 - `phases/04-totp-provisioning` (enrollment 1 vez con waiver registrado)
 - `specs/phase-03-api-catalog/03-16-errors-http/spec.md` (sin try/catch
   ad-hoc en Controllers; cuerpo PascalCase)
 - `testing/analyzer-quickref` (tabla regla -> sintoma -> fix)
+- En diffs fase 06: `phases/06-events-saga`, `phases/06-saga-state-machine`,
+  `specs/phase-06-events-saga/06-01-transport-events/spec.md`,
+  `06-02-saga-flow/spec.md`, `06-03-event-schemas/spec.md`,
+  `06-04-saga-state-machine/spec.md`
 
 Checks bloqueantes (FAIL con `ruta:linea`):
 
@@ -42,7 +46,7 @@ Avisos (WARN, no bloquean): 401 identicos, complejidad S1541, llamada a
 `ValidateAsync`, llaves `$"..."` + TTL, `NOTE` con duena en `task.md`,
 Stryker >= 80% con build restaurativo (eso lo prueban los tests).
 
-Checks fase 04 (WARN hasta ejecutar `04-XX`; FAIL desde su merge):
+Checks fase 04 (vigentes desde su merge 10-Oct-2026, antes WARN ahora FAIL):
 antes eran avisos, ahora bloquean lo que su spec ya exige:
 
 5. JWT: `alg=none` no rechazado, key <32B o fuera de env, `ClockSkew!=Zero`,
@@ -54,7 +58,36 @@ antes eran avisos, ahora bloquean lo que su spec ya exige:
 8. Headers: security headers ausentes en respuestas, HSTS en Dev, CORS
    multi-origin, CSP que rompe `/scalar`.
 9. Secretos en logs: `Token`/`RefreshToken`/TOTP en `ILogger` del diff
-   (waiver enrollment `03-09` no cubre logs).
+    (waiver enrollment `03-09` no cubre logs).
+
+Checks fase 06 (WARN hasta ejecutar `06-XX`; FAIL desde su merge):
+el bus real aún vive en `NOTE (06-01/06-02/06-03/06-04)` en `main`;
+estos checks muerden desde el primer diff fase 06:
+
+10. Secretos/PII en `Events/`: `password|secret|refreshToken|totp|pwd`
+    o PII (`rfc|curp|correo|tarjeta`) en `Events/*.cs` del diff → FAIL
+    (los payloads `06-03` solo admiten `pedidoId/clienteId/total/`
+    `motivo/idTransaccion/monto/folio`; `folio`/`idTransaccion` son campos
+    mandados, no secretos; SQS/DLQ retiene el payload).
+11. Credenciales SQS hardcodeadas o transporte pinned: `AccessKey|SecretKey|`
+    `SessionToken|SharedCredentials|UseProfile` en literal, o
+    `UsingInMemory` sin gate `Transport`/prod en `Program.cs` → FAIL
+    (solo env/IAM role; `Transport=InMemory` local / `SQS` prod FIFO+DLQ).
+12. Consumer sin resiliencia: `Consumers/*.cs` nuevo sin idempotencia
+    (`IdempotencyKey|UseInMemoryOutbox|pedidoId+UNIQUE`) o sin
+    retry+DLQ FIFO (`UseMessageRetry|maxReceiveCount.*3|FIFO`) → FAIL.
+13. Compensación ausente: diff que toca `Pago*Consumer*/PagoRechazadoEvent`
+    sin `Compensation*|RestoreStock|Cancel`, o `Factura*Consumer*/`
+    `FacturaRechazadaEvent` sin 2 niveles (`VoidPayment|AnularPago` +
+    `RestoreStock`) → FAIL (exigen `06-02`/`06-04`).
+14. Bus sin auth ni versionado: `Publish` en `Services/*Publisher*` /
+    `Consumers/*` sin `Authorize|Policy|sub/jti/role|LegacyVentaId`,
+    `ILogger` con payload del evento (salvo `pedidoId`), `catch` en
+    `Consumers/` que traga sin `throw|Publish.*Rechazad|DLQ|Fault`,
+    schema `06-03` que añade/quita/renombra prop sin `EventVersion|V2`,
+    o literal `strEstadoSaga` nuevo sin consumer ni fila en
+    `docs/saga-state-machine.md` → FAIL.
 
 Salida: `PASS` o `FAIL` con lista `ruta:linea`. La version ejecutable de
-este checklist es `scripts/critic-guardrails.ps1`.
+este checklist es `scripts/critic-guardrails.ps1` (cubre solo 1-4;
+5-14 son manuales del reviewer).

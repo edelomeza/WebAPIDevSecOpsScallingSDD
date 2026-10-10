@@ -26,6 +26,7 @@ namespace IntegrationTest.Saga
 
             var fks = await SeedFksAsync(client, "DashFlow", existencia: 5, precio: 10.5m);
             var pedidoId = await PostPedidoAsync(client, fks.ClienteId, fks.ProductoId, 1);
+            Assert.Equal("StockValidado", await WaitForEstadoAsync(client, pedidoId, "StockValidado"));
             await PostPagoAsync(client, pedidoId, 10.5m);
             InsertFactura(factory, pedidoId, $"F-DASH-{Guid.NewGuid():N}", 10.5m);
 
@@ -36,8 +37,13 @@ namespace IntegrationTest.Saga
             Assert.True(doc.RootElement.GetProperty("TotalPagos").GetInt32() >= 1);
             Assert.True(doc.RootElement.GetProperty("TotalFacturas").GetInt32() >= 1);
             Assert.Equal(0, doc.RootElement.GetProperty("ProfundidadCola").GetInt32());
-            var estados = doc.RootElement.GetProperty("PorEstadoSaga").EnumerateArray().Select(e => e.GetProperty("Estado").GetString()).ToList();
-            Assert.Contains("Creado", estados);
+            // El bus avanza el pedido en segundo plano (06-01): esperar la cadena completa
+            // pedido → pago → factura antes de leer el agregado.
+            Assert.Equal("Facturado", await WaitForEstadoAsync(client, pedidoId, "Facturado"));
+            var dashboard = await client.GetAsync(new Uri("/api/v1/ventas/dashboard", UriKind.Relative));
+            using var dashboardDoc = JsonDocument.Parse(await dashboard.Content.ReadAsStringAsync());
+            var estados = dashboardDoc.RootElement.GetProperty("PorEstadoSaga").EnumerateArray().Select(e => e.GetProperty("Estado").GetString()).ToList();
+            Assert.Contains("Facturado", estados);
             var body = doc.RootElement.GetRawText();
             Assert.DoesNotContain("password", body, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("secret", body, StringComparison.OrdinalIgnoreCase);
@@ -56,15 +62,18 @@ namespace IntegrationTest.Saga
 
             var fks = await SeedFksAsync(client, "DashFilter", existencia: 5, precio: 7m);
             var pedidoId = await PostPedidoAsync(client, fks.ClienteId, fks.ProductoId, 1);
+            Assert.Equal("StockValidado", await WaitForEstadoAsync(client, pedidoId, "StockValidado"));
             await PostPagoAsync(client, pedidoId, 7m);
 
-            var filtered = await client.GetAsync(new Uri("/api/v1/ventas/dashboard?desde=2000-01-01&hasta=2100-01-01&estadoSaga=Creado", UriKind.Relative));
+            // El bus avanza el pedido en segundo plano (06-01): filtrar por el estado terminal.
+            Assert.Equal("Facturado", await WaitForEstadoAsync(client, pedidoId, "Facturado"));
+            var filtered = await client.GetAsync(new Uri("/api/v1/ventas/dashboard?desde=2000-01-01&hasta=2100-01-01&estadoSaga=Facturado", UriKind.Relative));
             Assert.Equal(HttpStatusCode.OK, filtered.StatusCode);
             using var doc = JsonDocument.Parse(await filtered.Content.ReadAsStringAsync());
             Assert.True(doc.RootElement.GetProperty("TotalPedidos").GetInt32() >= 1);
             foreach (var entry in doc.RootElement.GetProperty("PorEstadoSaga").EnumerateArray())
             {
-                Assert.Equal("Creado", entry.GetProperty("Estado").GetString());
+                Assert.Equal("Facturado", entry.GetProperty("Estado").GetString());
             }
 
             var inverted = await client.GetAsync(new Uri("/api/v1/ventas/dashboard?desde=2100-01-01&hasta=2000-01-01", UriKind.Relative));
@@ -163,6 +172,26 @@ namespace IntegrationTest.Saga
                 "application/json");
             var response = await client.PostAsync(new Uri("/api/v1/ventas/pago", UriKind.Relative), content).ConfigureAwait(false);
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+
+        private static async Task<string?> WaitForEstadoAsync(HttpClient client, Guid pedidoId, string esperado)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (DateTime.UtcNow < deadline)
+            {
+                var fetched = await client.GetAsync(new Uri($"/api/v1/ventas/pedido/{pedidoId}", UriKind.Relative)).ConfigureAwait(false);
+                Assert.Equal(HttpStatusCode.OK, fetched.StatusCode);
+                using var doc = JsonDocument.Parse(await fetched.Content.ReadAsStringAsync().ConfigureAwait(false));
+                var estado = doc.RootElement.GetProperty("strEstadoSaga").GetString();
+                if (string.Equals(estado, esperado, StringComparison.Ordinal))
+                {
+                    return estado;
+                }
+
+                await Task.Delay(200).ConfigureAwait(false);
+            }
+
+            return null;
         }
 
         private static void AddAdminRole(HttpClient client) => client.DefaultRequestHeaders.Add("X-Test-Role", "Admin");

@@ -17,7 +17,9 @@
 ## 2. Principios no negociables
 
 1. **Stateless**: ningún estado de sesión en memoria de proceso; estado compartido
-   en Redis (blacklist, lockouts, attempts, cache).
+   en Redis (blacklist `blacklist:{jti}`, intentos/bloqueo 2FA `attempts:/lockout:`,
+   cache) y en SQL Server (lockout de login en tabla persistente `SegBloqueo`
+   5→15 min desde 04-02; solo 2FA/blacklist quedan en Redis).
 2. **Seguridad primero**: validar en frontera, rechazar por defecto, mínimos
    privilegios, sin secretos en código ni en logs.
 3. **Sin estado mutable oculto**: toda dependencia compartida se registra en DI;
@@ -49,15 +51,22 @@ No introducir librerías nuevas sin evaluar licencia, mantenimiento y seguridad.
 ## 4. Arquitectura
 
 - API versionada por URL: `api/v{version:apiVersion}/[controller]`, v1.0.
-- Respuesta JSON PascalCase (`PropertyNamingPolicy = null`).
+- Respuesta JSON con convención legacy medida (prefijos minúsculos + resto
+  PascalCase + `id`/sufijo, ver `IsConventional` en `ContractTest`), NO
+  PascalCase puro (`PropertyNamingPolicy = null` solo desactiva el camelCase
+  del serializador).
 - Saga de ventas coreográfica: `VenPedido` + eventos `PedidoCreado → StockValidado
   / StockRechazado → PagoProcesado / PagoRechazado → FacturaGenerado /
   FacturaRechazada → compensaciones`. Consumidores: StockValidator, Pago,
   Factura, Compensation. Colas SQS FIFO + DLQ (maxReceiveCount 3).
-- Cache-aside con Redis, claves con convención documentada y TTL 30–120 s.
-- Middleware en orden fijo: `CorrelationId → RequestTimeout → AuditLogging →
-  ExceptionHandling → SecurityHeaders → CspNonce → RateLimiter → Auth →
-  Authorization → Controllers` (+ UseSerilog, CORS, HSTS, ForwardedHeaders).
+- Cache-aside con Redis, claves con convención documentada y TTL 0–120 s
+  (`CacheService` lo exige; páginas 60 s).
+- Middleware en orden fijo (medido post-04-03/04-04): `SecurityHeadersMiddleware`
+  outermost absoluta (antes de `DeveloperExceptionPage`, cubre 403/500; el nonce
+  CSP vive dentro vía `NonceItemKey="CspNonce"`, sin middleware `CspNonce`
+  separada) → `ExceptionHandlingMiddleware` → resto `01-02` → `UseRateLimiter`
+  antes de `UseAuthentication` → `UseAuthorization` → Controllers
+  (+ CORS, HSTS 365d vía `AddHsts` solo no-Dev, ForwardedHeaders, Serilog).
 - Health: `/health`, `/health/ready` (DB), `/health-ui`. Métricas: `/metrics`.
 - OpenAPI + Scalar solo en Development, ruta `/scalar`.
 
@@ -79,7 +88,7 @@ No introducir librerías nuevas sin evaluar licencia, mantenimiento y seguridad.
   anti algorithm-confusion (`ValidAlgorithms`).
 - Anti-enumeración en login (fake hash), lockout 5 intentos → 15 min.
 - Token blacklist en Redis `blacklist:{jti}` + fallback memoria.
-- Assembly integrity check en startup (`AssemblyIntegrity:ExpectedHash`).
+- Assembly integrity check en startup (`AssemblyIntegrity:ExpectedSha256`).
 - Kestrel: 1000 conexiones, cuerpo 1 MB. CORS single origin.
 - Sin logs de JWT ni credenciales; audit hash chain SHA-256 tamper-evident.
 
@@ -87,10 +96,12 @@ No introducir librerías nuevas sin evaluar licencia, mantenimiento y seguridad.
 
 - Seis suites obligatorias: Unit, Integration, Security, Database (Testcontainers),
   Contract (Pact), Mutation (Stryker). Perf con NBomber, fuzzing RESTler.
-- Cobertura real medida hoy: ~46% (umbral CI 45%). Nuevo código ≥ 80% de
+- Cobertura real medida (umbral CI 45%). Nuevo código ≥ 80% de
   cobertura en SonarCloud (`sonar.new.coverage.requirement=80`).
-- Mutation score real: ~80% (umbral break 60–70 según evolución); considerar
-  mutantes Inmemory-unkillable documentados.
+- Mutation score con gate Stryker ≥ 80% (scores medidos 90–100% por slice
+  en 03-01…04-03; `test-case-filter FullyQualifiedName~UnitTest.` en local
+  para excluir Docker-fallos); considerar mutantes Inmemory-unkillable
+  documentados.
 - Tests property-based FsCheck con comparación exacta (`.Trim()` en strings).
 - Integration/Security usan `UseInMemoryDatabase=true`; `SegUsuario.RowVersion`
   `byte[]{1}`.
@@ -98,9 +109,9 @@ No introducir librerías nuevas sin evaluar licencia, mantenimiento y seguridad.
 
 ## 8. CI/CD y calidad continua
 
-Orden estricto: `restore → build → unit → integration → security`, tests con
-`--no-build` Release. Nightly: mutation (timeout 180 min), chaos. En PR:
-semgrep, ZAP, pr-quality-gate. SonarScanner con `/n:`. Majors de actions de
+Orden estricto: `restore → build → unit → integration → security → critic →
+endpoints → contract → semgrep`, tests con `--no-build` Release. Nightly:
+mutation (timeout 180 min), chaos. En PR: semgrep, ZAP, pr-quality-gate. SonarScanner con `/n:`. Majors de actions de
 artifacts en pareja. Jobs agregadores tolerantes (`if: always()`,
 `continue-on-error`, `if-no-files-found: warn`). Timeout/umbrales medidos
 empíricamente antes de fijarse.
@@ -115,11 +126,13 @@ empíricamente antes de fijarse.
 
 ## 10. Memoria y lecciones
 
-- `agent.md` consolida lo aprendido por fase; se actualiza al cerrar cada fase.
-- Reglas futuras vigentes (ver AGENTS/agent.md): verificar empíricamente, medir
-  runtimes reales, resetear estado estático, chequear release de paquetes,
-  documentar límites, tests de frontera exactos, socket real→proceso real,
-  scripts con fallback y atomicidad, `.gitignore` defensivo, YAML CI validado.
+- `Memoria.md` consolida lo aprendido por fase; se actualiza al cerrar cada fase.
+- Reglas futuras vigentes (fuente canónica:
+  `specs/phase-00-constitution/00-04-lessons-learned/spec.md`): verificar
+  empíricamente, medir runtimes reales, resetear estado estático, chequear
+  release de paquetes, documentar límites, tests de frontera exactos, socket
+  real→proceso real, scripts con fallback y atomicidad, `.gitignore` defensivo,
+  YAML CI validado.
 
 ## 11. Gobernanza SDD
 

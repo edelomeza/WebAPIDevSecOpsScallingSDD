@@ -48,6 +48,8 @@ auth); al añadir un guard nuevo (el de fixtures/Pact en fase 10 vive aquí).
 ## Guards vigentes
 
 - `scripts/check_endpoints.ps1` ↔ `docs/endpoints.md` (56 rutas, job `endpoints`, `03-17`).
+- `docs/rate-limit-matrix.md` (49 filas + exclusiones ping/health/probe/provider-states, `04-04`): canónico enlazado desde `docs/endpoints.md` (columna = policy vigente) y desde `spec.md` sin duplicar; drift lo reporta `traceability-clerk` (sin extractor propio: la fuente es el atributo `[EnableRateLimiting]` + `RateLimitOptions.*PolicyName`).
+- `docs/asvs-l2-checklist.md` (10 capítulos V1–V9+V14, 6×Cubierto + 4×Parcial con deuda 04-01/04-02/04-03, `04-05`): canónico doc-only enlazado desde `spec.md` sin duplicar; todo `Cubierto` exige evidencia archivo+test, sin cobertura ficticia.
 
 ## Referencias
 

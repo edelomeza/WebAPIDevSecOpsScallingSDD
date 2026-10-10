@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using WebAPIDevSecOpsScallingSDD.Context;
 using WebAPIDevSecOpsScallingSDD.Dtos;
+using WebAPIDevSecOpsScallingSDD.Events;
 using WebAPIDevSecOpsScallingSDD.Models;
 
 namespace WebAPIDevSecOpsScallingSDD.Services
@@ -30,13 +31,16 @@ namespace WebAPIDevSecOpsScallingSDD.Services
 
         private readonly AppDbContext _db;
         private readonly ICacheService _cache;
+        private readonly IPagoEventPublisher _publisher;
 
-        public VentasPagoService(AppDbContext db, ICacheService cache)
+        public VentasPagoService(AppDbContext db, ICacheService cache, IPagoEventPublisher publisher)
         {
             ArgumentNullException.ThrowIfNull(db);
             ArgumentNullException.ThrowIfNull(cache);
+            ArgumentNullException.ThrowIfNull(publisher);
             _db = db;
             _cache = cache;
+            _publisher = publisher;
         }
 
         public async Task<PagoResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -121,7 +125,18 @@ namespace WebAPIDevSecOpsScallingSDD.Services
             await InvalidateAsync(pago.id, cancellationToken).ConfigureAwait(false);
 
             var created = await _db.VenPedidoPagos.AsNoTracking().FirstAsync(e => e.id == pago.id, cancellationToken).ConfigureAwait(false);
-            return ToDto(created);
+            var response = ToDto(created);
+
+            // El bus valida el cobro en segundo plano (PagoConsumer) y la factura la emite
+            // FacturaConsumer; la respuesta POST es determinista ("Procesado").
+            await _publisher.PublishProcesadoAsync(new PagoProcesadoEvent
+            {
+                PedidoId = pago.idVenPedido,
+                IdTransaccion = pago.strIdTransaccion,
+                Monto = pago.decMonto,
+            }, cancellationToken).ConfigureAwait(false);
+
+            return response;
         }
 
         private async Task InvalidateAsync(int? id = null, CancellationToken cancellationToken = default)

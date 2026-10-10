@@ -27,6 +27,7 @@ Al definir o ajustar `ci-cd.yml` y workflows nightly.
 8. Job `critic` (Fase 1): paralelo sin `needs`, mismo SHA checkout, `shell: pwsh`, `exit 0/1`; PR template `3→8` checks; sub-agentes `slice-scaffolder`/`security-reviewer` (ver `operations/critic-guardrails`).
 9. Job `endpoints` (`03-17`): paralelo sin `needs`, mismo SHA, `shell: pwsh`, corre `scripts/check_endpoints.ps1` (toda action de `Controllers/V1/` + `MapGet` de `Program.cs` con fila en `docs/endpoints.md`).
 10. Job `contract` (`03-18`): con `needs: build` (compila la API referenciada), InMemory sin Docker, `dotnet test ContractTest -c Release --no-build` (captura + convención + sin secretos); patrón anti-drift en `operations/drift-guards`.
+11. Baseline verde post-`04-04` (referencia para auditar regresiones): Unit 330/330, Security 81/81, Integration 99/99 (92+7 tras arrancar Docker), Contract 4/4, Database 2/2 + `critic PASS` + `endpoints OK (56)` en cada fase 04-01…04-05 (`04-05` doc-only hereda suites 04-04). Stryker local con `test-case-filter FullyQualifiedName~UnitTest.` para evitar Docker-fallos en CI; relajación rate-limit en perf solo vía `PERF_RATELIMIT_MULTIPLIER`. Canónicos: `docs/rate-limit-matrix.md` (49 filas) + `docs/asvs-l2-checklist.md` (10 capítulos) como artefactos referenciados (ver `operations/drift-guards`).
 
 ## Checklist
 
@@ -42,4 +43,4 @@ No renombrar steps sin parametrizar; no hardcodear thresholds.
 
 ## Referencias
 
-`09-06`, `.github/workflows/ci-cd.yml`, `operations/critic-guardrails`.
+`09-06`, `.github/workflows/ci-cd.yml`, `operations/critic-guardrails`, `operations/drift-guards`, `docs/rate-limit-matrix.md`, `docs/asvs-l2-checklist.md`.

@@ -1,9 +1,11 @@
 # WebAPIDevSecOpsScallingSDD
 
 Web API built with **.NET 10** (ASP.NET Core + Entity Framework Core) with a
-DevSecOps and scalability focus: versioned catalog endpoints, password login
-with lockout and two-factor step-up, Redis cache-aside with in-memory fallback,
-and mutation-score quality gates.
+DevSecOps and scalability focus: versioned catalog endpoints, real JWT auth
+with refresh rotation and blacklist, Argon2id password hashing with persistent
+lockout and two-factor step-up, Redis cache-aside with in-memory fallback,
+SlidingWindow rate limiting with uniform 429s, security headers + HSTS, and
+mutation-score quality gates.
 
 Development follows **Spec-Driven Development (SDD)**: every change starts
 from a spec in `specs/` following `specs/_template.md`
@@ -13,16 +15,19 @@ Approval), with the Definition of Done in
 acceptance criteria per command or test, mandatory spec↔code↔test
 traceability, and `Memoria.md` as the living state log.
 
-Current status is honest: phase 03 is finished and signed 19/19 —
-catalog CRUD + search/autocomplete, base auth (login, lockout, login-2FA
-verify, opaque refresh/logout, real TOTP provisioning with OtpNet),
-legacy sync sale with details, the minimal saga path (order → payment →
-read-only invoice → filtered dashboard), uniform errors via middleware,
-a living 56-row endpoint catalog with a drift-guard script, and 14 JSON
-fixtures captured from the real wire are implemented and green; real JWT
-issuance, saga runtime (bus/consumers/compensation), observability, and
-the full CI/CD matrix are specified but pending. See `specs/` for the
-source of truth and `Memoria.md` for the current state and decisions.
+Current status is honest: phases 00–04 are finished and signed — catalog
+CRUD + search/autocomplete, real auth (JWT HS256 behind
+`Authentication:UseJwtBearer`, opaque→JWT refresh/logout rotation with
+`blacklist:{jti}`, Argon2id + persistent `SegBloqueo` lockout, real TOTP
+provisioning with OtpNet), legacy sync sale with details, the minimal saga
+path (order → payment → read-only invoice → filtered dashboard), uniform
+errors via middleware, security headers (outermost) + HSTS, a living 56-row
+endpoint catalog, a 49-row rate-limit matrix and a 10-chapter ASVS L2
+checklist (6 Covered + 4 Partial) with drift-guard scripts, and 14 JSON
+fixtures captured from the real wire are implemented and green; saga runtime
+(bus/consumers/compensation), observability, and the full CI/CD matrix are
+specified but pending. See `specs/` for the source of truth and `Memoria.md`
+for the current state and decisions.
 
 ## Stack
 
@@ -34,6 +39,12 @@ Runtime (`WebAPIDevSecOpsScallingSDD/WebAPIDevSecOpsScallingSDD.csproj`,
 - `Microsoft.EntityFrameworkCore.SqlServer` / `.InMemory` 10.0.12
   (SQL Server or InMemory via `UseInMemoryDatabase`)
 - `StackExchange.Redis` 2.9.32 (cache-aside with `IMemoryCache` fallback)
+- `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.12 (real JWT, 04-01)
+- `Konscious.Security.Cryptography.Argon2` 1.3.1 + `BCrypt.Net-Next` 4.0.3
+  (Argon2id hashing, BCrypt verify-only for migration, 04-02)
+- `Otp.NET` 1.4.1 (real TOTP provisioning, ±1 window)
+- `MassTransit` + `MassTransit.AmazonSQS` 8.5.11 (Apache-2.0; saga bus, 06-01:
+  InMemory local/test, SQS FIFO+DLQ prod by `Transport` flag)
 - `Scalar.AspNetCore` 2.17.13 + `Microsoft.AspNetCore.OpenApi` 10.0.12
   (Dev-only API reference)
 
@@ -49,7 +60,8 @@ Tests (xUnit 2.9.3 + coverlet):
   naming-convention test (`IsConventional`); Pact stays in phase 10
 - `PerformanceTest` (NBomber), `ChaosTest` — placeholders
 - Mutation testing via Stryker.NET (per-slice configs `stryker-0301.json`
-  through `stryker-0316.json` plus `stryker-0309.json`, gate ≥ 80%)
+  through `stryker-0316.json` plus `stryker-0309.json`, `stryker-0402.json`
+  (90.85%), `stryker-0403.json` (100%), gate ≥ 80%)
 
 Solution format and guardrails:
 
@@ -83,6 +95,10 @@ Real keys from `WebAPIDevSecOpsScallingSDD/appsettings.Example.json`
 (placeholders only, no secrets in Git):
 
 - `ConnectionStrings:Default`, `UseInMemoryDatabase`, `SkipMigration`
+- `Authentication:UseJwtBearer` (real JwtBearer vs Anonymous legacy, 04-01)
+- `PasswordHasher:MemoryKBytes/Iterations` (no secrets, 04-02)
+- `RateLimiting:*` + env `PERF_RATELIMIT_MULTIPLIER` (relaxation, never in prod, 04-04)
+- `Transport` (`InMemory` local/test, `SQS` prod, 06-01) + `Sqs:Region/Scope/MaxReceiveCount` (no secrets; creds via IAM)
 - `Jwt:Key` (≥32 bytes placeholder), `Jwt:Issuer`, `Jwt:Audience`
 - `Kestrel:Limits`, `Cors:AllowedOrigins` (single origin)
 - `AssemblyIntegrity:ExpectedSha256` (startup integrity check)
@@ -128,8 +144,8 @@ Controllers (`Controllers/V1/`, 17):
 | `LoginController` | `api/v1/auth` | `POST login` (anonymous) |
 | `Login2FaController` | `api/v1/auth` | `POST login2fa/verify` (anonymous) |
 | `TwoFactorController` | `api/v1/two-factor` | `POST setup` (Bearer, no request DTO) + `POST verify` (Bearer, real OtpNet ±1 window) |
-| `RefreshController` | `api/v1/auth` | `POST refresh` (anonymous, rotates opaque token) |
-| `LogoutController` | `api/v1/auth` | `POST logout` (Bearer, revokes via `jti ?? hash`) |
+| `RefreshController` | `api/v1/auth` | `POST refresh` (anonymous, rotates refresh + returns JWT access token, reuse → 401) |
+| `LogoutController` | `api/v1/auth` | `POST logout` (Bearer, revokes via `jti ?? hash`, enforced by `OnTokenValidated` blacklist) |
 | `VentaController` | `api/v1/ventas` | `POST` (Bearer, 201) + `GET {id}` (auxiliary) |
 | `VentaDetalleController` | `api/v1/ventas/detalles` | `POST ~/ventas/{idVenta}/detalles` + `GET/DELETE {id}` + `GET autocomplete-productos` (Bearer, owner-only 403) |
 | `VentasPedidoController` | `api/v1/ventas/pedido` | `POST` + `GET {id:guid}` (AdminPolicy, saga entry, no stock discount) |
@@ -146,10 +162,10 @@ only, gated by `EnableProviderStates`), `/scalar` + `/openapi`
 
 Middleware order (`Program.cs`): `SecurityHeadersMiddleware` (outermost,
 4 headers + CSP nonce; `scalar`/`openapi` exempt from CSP) →
-`ExceptionHandlingMiddleware` (single try/catch, uniform `ErrorResponse`)
-→ ForwardedHeaders → HSTS 365d (non-Dev, `MaxAge` via `AddHsts`) →
-HttpsRedirection → CORS → OpenApi/Scalar (Dev) → Authentication →
-Authorization → Controllers → HealthChecks.
+`ExceptionHandlingMiddleware` (single try/catch, uniform `ErrorResponse`,
+also used by rate-limit 429s) → ForwardedHeaders → HSTS 365d (non-Dev,
+`MaxAge` via `AddHsts`) → HttpsRedirection → CORS → OpenApi/Scalar (Dev) →
+`UseRateLimiter` → Authentication → Authorization → Controllers → HealthChecks.
 
 ## Testing and quality
 
@@ -169,17 +185,22 @@ powershell -File scripts/critic-guardrails.ps1
 dotnet stryker -f stryker-0316.json
 ```
 
-Measured state (09-Oct-2026):
+Measured state (10-Oct-2026, post-06-01):
 
 - Build Release 0 errors / 0 warnings
-- Unit 289/289, Integration 85/85, Security 62/62, Database 2/2, Contract 4/4
+- Unit 386/386, Integration 101/101 (99+2 saga bus), Security 81/81, Database 2/2, Contract 4/4
 - `check_endpoints.ps1` OK (56 routes), `critic-guardrails.ps1` PASS
+- Living docs: `docs/endpoints.md` (56), `docs/rate-limit-matrix.md` (49 rows),
+  `docs/asvs-l2-checklist.md` (10 chapters, 6 Covered + 4 Partial)
 - Stryker ≥ 80% gate on every slice (100% on most services, e.g.
   `LoginService`, `Login2FaService`, `VentasFacturaService`,
-  `VentasDashboardService`, `ExceptionHandlingMiddleware`; 82–95% on broader
+  `VentasDashboardService`, `ExceptionHandlingMiddleware`,
+  `SecurityHeadersMiddleware`; 82–95% on broader
   services such as `VentaService`, `VentasPedidoService`,
   `VentaDetalleService`, `VentasPagoService` — residue is relational-only
-  branches outside `UnitTest` scope; `TwoFactorService` 93.41%)
+  branches outside `UnitTest` scope; `TwoFactorService` 93.41%,
+  `04-02` slice 90.85%, `04-03` slice 100%, `06-01` slice 90.77% (residue:
+  thin `Consume` adapters covered by Integration + one equivalent))
 - Real coverage gate is the mutation score (line coverage threshold
   reference: 45% via `scripts/check_coverage.py`, stub until phase 07)
 
@@ -203,15 +224,26 @@ Rules learned the hard way:
 - Kill `catch` mutants with a `ThrowingContext : AppDbContext` subclass
   (`ThrowOnSave` flag) instead of widening `UnitTest` scope to MsSql.
 - `NOTE (XX-YY)` for deferred scope, never `TODO`: S1135 plus
-  `TreatWarningsAsErrors` turns `TODO` into a build error.
+  `TreatWarningsAsErrors` turns `TODO` into a build error (it even catches
+  lowercase `todo` inside comments).
+- Filter Stryker to `FullyQualifiedName~UnitTest.` in local runs (5 min vs
+  75 min; otherwise it runs all 5 test projects incl. Docker-only failures).
+- Emit the literal `"role"` claim: `ClaimTypes.Role` does not survive the
+  outbound map (inbound elevates it back for `AdminPolicy`).
+- Never read config eager in DI registration when tests override it: use
+  lazy `IOptionsMonitor` (3rd instance of the Redis/DbContext lesson —
+  eager reads miss `WebApplicationFactory` overrides, the 429 never fired).
+- `[EnableRateLimiting]` on the action wins over the class level (verified
+  by the 429s); `UseHsts(Action<HstsOptions>)` does not exist (configure
+  via `AddHsts`); HSTS on the wire is not testable with `WebApplicationFactory`
+  (assert `HstsOptions` in a `Production` factory instead).
 
 ## Key decisions
 
-- **Reduced scope with NOTEs** (same pattern as login T1): temp/token are
-  opaque 32-byte values (`NOTE 04-01` → real HS256 JWT with `2fa_temp`
-  claim); TOTP provisioning is real (OtpNet, ±1 step window, secret
-  protected with DataProtection — enrollment secret returned once, covered
-  by a documented critic waiver).
+- **Reduced scope with NOTEs** (same pattern as login T1): the 2FA temp is
+  hex (`NOTE 04-01` documented the JWT `2fa_temp` delta); TOTP provisioning
+  is real (OtpNet, ±1 step window, secret protected with DataProtection —
+  enrollment secret returned once, covered by a documented critic waiver).
 - Naming uses `IsConventional`, not pure PascalCase: lowercase legacy
   prefixes (`str/int/dec/dte/bln` + uppercase/digit), `id` alone or with a
   PascalCase suffix (`idCliCliente`), rest PascalCase (`RowVersion`) —
@@ -234,22 +266,37 @@ Rules learned the hard way:
   since `04-02`): BCrypt `$2a$/$2b$` only verified for migration
   (`NeedsRehash`), corrupt hashes fail closed to generic 401, never 500.
 - Naming uses `2Fa` (not `2fa`) to satisfy Sonar S101.
-- **Opaque refresh/logout** (`NOTE 04-01` → real HS256 JWT): refresh tokens
-  are SHA-256 hex persisted with rotation link (`strReplacedByTokenHash`)
-  and reuse → 401; logout revokes `blacklist:{jti}` from the `jti`/`sub`
-  claim with hash-of-refresh fallback, TTL 120s (`NOTE 04-02`).
+- **JWT + refresh rotation** (04-01, was opaque `NOTE 04-01`): access tokens
+  are HS256 JWT (`sub/jti/role`, 15 min) behind `Authentication:UseJwtBearer`;
+  refresh tokens are SHA-256 hex persisted with rotation link
+  (`strReplacedByTokenHash`) and reuse → 401; logout revokes
+  `blacklist:{jti}` from the `jti`/`sub` claim with hash-of-refresh fallback,
+  enforced on every request by `OnTokenValidated` (TTL 120s, `NOTE 04-02`).
 - **Legacy sync sale** (Bearer, owner in body + `NOTE 04-01` → `sub` claim):
   server-side totals (`decPrecio × piezas`), FK triple-check → 422, any
   stock/concurrency conflict → 409; details share one explicit transaction
   and restore stock on delete.
-- **Minimal saga, fake-first** (`NOTEs 06-01…06-04` → MassTransit/bus in
-  phase 06): order creation does **not** discount stock (validated later by
-  the stock consumer), emits `PedidoCreadoEvent` via
-  `FakePedidoEventPublisher`; duplicate non-null `strIdTransaccion` → 409
+- **Minimal saga, bus-backed since 06-01** (`NOTEs 06-01…06-04` mostly consumed):
+  order creation still does **not** discount stock, but the bus now validates
+  and reserves via `StockValidatorConsumer` (MassTransit InMemory local/test,
+  SQS FIFO+DLQ prod); out-of-order payment is rejected (`PagoRechazadoEvent`);
+  duplicate non-null `strIdTransaccion` → 409
   (multiple `NULL`s allowed by the filtered unique index); invoice is
-  GET-only (no atomic `Increment` in `CacheService`, folio `F-{año}-{seq}`
-  deferred); dashboard aggregates per-entity dates with `queue depth 0`
-  (`NOTE 06-01`) and sanitizes `password/secret/token/":"` from cache keys.
+  emitted by `FacturaConsumer` with deterministic folio `F-{year}-{pedidoId}`
+  (no atomic `Increment` needed); idempotency via `VenEventoProcesado` UNIQUE;
+  dashboard aggregates per-entity dates with `queue depth 0`
+  (`NOTE 06-01` kept for the real depth probe) and sanitizes `password/secret/token/":"` from cache keys.
+- **Rate limiting is enforced, not deferred** (04-04): 5 SlidingWindow
+  policies (`Login`, `Login2faVerify`, `Global`, `Admin`, `ConcurrentWrites`)
+  via `RateLimitOptions` + `ApplyMultiplier` clamp, `QueueLimit=0`,
+  uniform 429 `ErrorResponse` without Detail + best-effort `Retry-After`;
+  `UseRateLimiter` runs before `Auth`; relaxation only via
+  `PERF_RATELIMIT_MULTIPLIER`, never in prod; living matrix in
+  `docs/rate-limit-matrix.md`.
+- **Headers + ASVS are enforced** (04-03/04-05): single
+  `SecurityHeadersMiddleware` outermost (no `OnStarting`, `scalar`/`openapi`
+  exempt) + HSTS 365d via `AddHsts` (non-Dev only); OWASP ASVS L2 tracked in
+  `docs/asvs-l2-checklist.md` (6 Covered + 4 Partial with explicit 04-x debt).
 
 ## SDD components
 
@@ -263,10 +310,10 @@ components (each one earned by a slice that needed it):
 | `Memoria.md` | Living log: state, decisions, lessons per phase | repo root |
 | Traceability | 4-layer pending log (`NOTE` + spec + task + Memoria) | `.opencode/skills/core/traceability/SKILL.md` |
 | Deferred scope | Fake-first with traceable `NOTE (XX-YY)`, never `TODO` | `.opencode/skills/core/deferred-scope-fakes/SKILL.md` |
-| Living catalogs | Canonical doc the spec links (never duplicates): 56-row endpoints | `docs/endpoints.md` |
+| Living catalogs | Canonical docs the spec links (never duplicates): 56-row endpoints, 49-row rate-limit matrix, 10-chapter ASVS L2 | `docs/endpoints.md`, `docs/rate-limit-matrix.md`, `docs/asvs-l2-checklist.md` |
 | Contract fixtures | 14 JSON captured from the real wire (`CONTRACT_CAPTURE=1`) | `ContractTest/Fixtures/` |
 | Drift guards | Canonical doc + extractor script + parallel CI job | `.opencode/skills/operations/drift-guards/SKILL.md` (`check_endpoints.ps1`, jobs `endpoints`/`contract`) |
-| Critic gate | 4 blocking diff-scoped checks, pre-push | `scripts/critic-guardrails.ps1` (skill `operations/critic-guardrails`) |
+| Critic gate | 4 blocking diff-scoped checks, pre-push (reviewer checks 5–14 are manual) | `scripts/critic-guardrails.ps1` (skill `operations/critic-guardrails`) |
 | Skills | 48 rule packs; agents link them, never copy | `.opencode/skills/` |
 
 ## Sub-agents
@@ -278,9 +325,9 @@ invocation in dev (`@slice-scaffolder`, …); CI runs only the lightweight
 
 | Agent | Role | Permissions |
 |---|---|---|
-| `slice-scaffolder` | Phase A: compilable vertical-slice skeleton intra-PR (+ fake→real swap variant for phase 04); never committed without its Phase B | edit+bash allow |
-| `security-reviewer` | Pre-push gate: critiques without editing or running Stryker (+ phase-04 checks: JWT, hashing, rate-limit, headers, secrets in logs) | edit deny |
-| `traceability-clerk` | Living 04-04/04-05 matrices + addenda: reports drift, never edits (brought forward from Phase 2 for phase 04) | edit deny |
+| `slice-scaffolder` | Phase A: compilable vertical-slice skeleton intra-PR (+ fake→real swap variant for phase 04 + saga/consumer variant for phase 06: events, consumers, MassTransit, diagram); never committed without its Phase B | edit+bash allow |
+| `security-reviewer` | Pre-push gate: critiques without editing or running Stryker (+ phase-04 checks: JWT, hashing, rate-limit, headers, secrets in logs; + phase-06 WARN→FAIL: secrets in events, SQS, idempotency/retry/DLQ, compensation, bus auth, schemas, states) | edit deny |
+| `traceability-clerk` | Living 04-04/04-05 matrices + saga 06-01…06-04 (diagram, schemas, transitions, NOTEs) + addenda: reports drift, never edits | edit deny |
 
 ## SDD workflow and roadmap
 
@@ -294,10 +341,10 @@ invocation in dev (`@slice-scaffolder`, …); CI runs only the lightweight
   (4 blocking diff-scoped checks; 401 parity / complexity / Stryker need test
   evidence). Manual sub-agents live in `.opencode/agents/` (hybrid: they link
   `.opencode/skills/`, never copy); CI runs only the lightweight `critic` job.
-- Roadmap: phases 00, 01, 02, and 03-00…03-18 are approved and implemented
-  (phase 03 signed 19/19). Still pending: PR #18 merge, phases 04
-  (JWT/credentials/hardening/rate-limit), 06 (saga runtime), 07
-  (quality/supply chain), 08 (observability), 09 (CI/CD, AWS, chaos),
+- Roadmap: phases 00, 01, 02, 03 (signed 19/19), 04 (signed 04-01…04-05)
+  and 06-01 (signed transport + events) are approved and implemented.
+  Still pending: 06-02…06-04 (full compensation, schemas sign-off, state machine),
+  07 (quality/supply chain), 08 (observability), 09 (CI/CD, AWS, chaos),
   10 (Pact provider verification).
 - Known gaps (not code, just not built yet): `deploy/` has no
   compose/CloudFormation/Grafana files, `scripts/check_coverage.py` and

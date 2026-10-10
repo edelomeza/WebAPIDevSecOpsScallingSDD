@@ -49,6 +49,8 @@
 - Rate limits relajados solo vía env `PERF_*` o config explícita; no en prod.
 - No asumir PascalCase puro en JSON (convención legacy medida, §1).
 - No duplicar tablas vivas en specs (el canónico vive en `docs/`, el spec enlaza).
+- No leer config eager en el registro DI si hay overrides WAF en tests (usar `IOptionsMonitor` lazy; 3ª instancia Redis/DbContext/RateLimit).
+- `S1135` caza `todo` incluso en minúsculas; migraciones sin `_` (CA1707); estados saga solo con canónico `06-04`.
 - Siempre: actualizar Memoria.md al terminar cada tarea.
 
 ## 4. Verificación
@@ -84,11 +86,17 @@ fuera de Git (`.gitignore` cubre `appsettings.Local.json`).
 
 ## 5. Convenciones técnicas
 
-> Fase 03 terminada y firmada 19/19 (09-Oct-2026). Fuente viva de rutas: `docs/endpoints.md` (verificado por `scripts/check_endpoints.ps1`).
+> Fase 03 terminada y firmada 19/19 (09-Oct-2026). Fase 04 terminada y firmada
+> 04-01…04-05 (10-Oct-2026). Fase 06 en curso: 06-01 firmada (transporte MassTransit
+> + 7 eventos + 4 consumers, 10-Oct-2026); 06-02…06-04 pendientes.
+> Fuente viva de rutas: `docs/endpoints.md`
+> (verificado por `scripts/check_endpoints.ps1`); rate-limit: `docs/rate-limit-matrix.md`
+> (49 filas); ASVS L2: `docs/asvs-l2-checklist.md` (10 capítulos, 6×Cubierto + 4×Parcial).
 
 - Rutas `api/v{version}/[controller]`; DTOs + FluentValidation; nombres según convención legacy (§1).
 - Health `/health`, `/health/ready`, `/health-ui`; `/metrics`; `/scalar` solo Dev.
-- Redis keys: `blacklist:{jti}`, `attempts:{user}`, `lockout:{user}`,
+- Redis keys: `blacklist:{jti}`, `attempts:{user}`, `lockout:{user}` (solo 2FA/TOTP
+  + blacklist; el lockout de login migró a tabla persistente `SegBloqueo` 5→15min en 04-02),
   `cache:{entidad}:...` con TTL; password nunca en cache.
 - Eventos saga: `PedidoCreadoEvent`, `StockValidadoEvent`, `StockRechazadoEvent`,
   `PagoProcesadoEvent`, `PagoRechazadoEvent`, `FacturaGeneradoEvent`,
@@ -97,11 +105,18 @@ fuera de Git (`.gitignore` cubre `appsettings.Local.json`).
 
 ## 6. Seguridad y DevSecOps
 
-> 🚧 [FASE 04 - PENDIENTE] Esta funcionalidad esta especificada pero aun no implementada en el repositorio real.
+> Fase 04 implementada y firmada 04-01…04-05 (10-Oct-2026).
 
-- JWT HS256, key ≥32B, ClockSkew=Zero, ValidAlgorithms; refresh tokens hasheados.
-- Argon2id 64MB/3 iter; lockout; 2FA TOTP; anti-enumeration; CORS single origin.
-- Headers de seguridad + CSP nonce; HSTS solo no-Dev.
+- JWT HS256 real tras flag `Authentication:UseJwtBearer` (key ≥32B, ClockSkew=Zero,
+  ValidAlgorithms; `OnTokenValidated` anti-`blacklist:{jti}`; refresh tokens hasheados con rotación).
+- Argon2id 64MB/3 iter + `NeedsRehash` (BCrypt solo migración); lockout persistente `SegBloqueo`
+  5→15min (`TimeProvider`, fail-closed); 2FA TOTP real (Otp.NET ±1 + DataProtection);
+  anti-enumeration; CORS single origin.
+- `SecurityHeadersMiddleware` outermost (4 headers + CSP nonce 16B; exención `scalar`/`openapi`) + HSTS 365d
+  vía `AddHsts` solo no-Dev.
+- Rate-limit vigente (5 policies SlidingWindow + 429 `ErrorResponse` uniforme; `UseRateLimiter`
+  antes de `Auth`; relajación solo vía `PERF_RATELIMIT_MULTIPLIER`); matriz viva
+  `docs/rate-limit-matrix.md`; ASVS L2 `docs/asvs-l2-checklist.md`.
 - Assembly integrity check; audit hash chain; request timeout 60s.
 - SAST: Semgrep (`semgrep scan --config=auto --config=.semgrep/semgrep.yaml --error`; `scan` rechaza `--metrics=off`).
 - Contenedores: Trivy + dockle (HIGH/CRITICAL falla); ZAP en PR y main.
@@ -154,15 +169,19 @@ Las 13 reglas constitucionales derivadas de fallos históricos y optimizaciones 
 ## 11. Sub-agentes (híbrido agentes → skills)
 
 - `slice-scaffolder`: Fase A (esqueleto compilable vertical-slice intra-PR,
-  con test que aserta cada diferido) + variante swap fake→real (fase 04);
+  con test que aserta cada diferido) + variante swap fake→real (fase 04)
+  + variante saga/consumer (fase 06: eventos, consumers, MassTransit, diagrama);
   nunca se commitea sin su Fase B.
 - `security-reviewer`: gate pre-push (critica sin editar, sin Stryker;
-  + checks fase 04: JWT, hash, rate-limit, headers, secretos en logs).
-- `traceability-clerk`: matrices vivas 04-04/04-05 + addenda (reporta drift,
-  no edita; adelantado de Fase 2 para fase 04).
+  + checks fase 04: JWT, hash, rate-limit, headers, secretos en logs
+  + checks fase 06 WARN→FAIL: secretos en eventos, SQS, idempotencia/retry/DLQ,
+  compensación, auth del bus, schemas, estados).
+- `traceability-clerk`: matrices vivas 04-04/04-05 + saga 06-01…06-04
+  (diagrama, schemas, transiciones, NOTEs) + addenda (reporta drift,
+  no edita).
 - Invocación manual en dev (`@slice-scaffolder`, `@security-reviewer`,
   `@traceability-clerk`); en CI solo corre el job `critic` ligero
-  (`scripts/critic-guardrails.ps1`).
+  (`scripts/critic-guardrails.ps1`, cubre solo bloqueantes 1-4; 5-14 manuales).
 - Fuente de reglas: `.opencode/skills/` (48 con `drift-guards`; los agentes
   solo enlazan SKILL.md, nunca copian). Identidad y convención:
   `.opencode/agents/README.md`.
@@ -188,7 +207,7 @@ Las 13 reglas constitucionales derivadas de fallos históricos y optimizaciones 
 | `fuzzing/` | `fuzzing/` | RESTler DAST config |
 | `deploy/` | `deploy/` | docker-compose, CloudFormation, Grafana |
 | `scripts/` | `scripts/` | Coverage check, quality metrics, drift guards, deploy/destroy |
-| `docs/` | `docs/` | Catálogo canónico de endpoints (`endpoints.md`, 56 filas) |
+| `docs/` | `docs/` | Catálogo canónico de endpoints (`endpoints.md`, 56 filas) + rate-limit (`rate-limit-matrix.md`, 49 filas) + ASVS L2 (`asvs-l2-checklist.md`, 10 capítulos) |
 | `.opencode/` | `.opencode/` | Sub-agentes (`agents/`) + skills (`skills/`, 48 con `drift-guards`) |
 | `.github/` | `.github/` | CI/CD workflows, Dependabot, PR template |
 | `.semgrep/` | `.semgrep/` | Custom SAST rules |

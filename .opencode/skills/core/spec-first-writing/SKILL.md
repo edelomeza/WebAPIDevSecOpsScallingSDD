@@ -35,4 +35,4 @@ Criterios son verificables (comando o test); sin ambigüedad.
 
 ## Límites/trampas
 
-No escribir specs horizontales por capa; no omitir "Límites conocidos"; no duplicar tablas vivas en el spec (probado `03-17`: el canónico vive en `docs/endpoints.md` y el spec solo enlaza + registra correcciones; la duplicación se pudre y la cubre `operations/drift-guards`).
+No escribir specs horizontales por capa; no omitir "Límites conocidos"; no duplicar tablas vivas en el spec (probado `03-17`: el canónico vive en `docs/endpoints.md` y el spec solo enlaza + registra correcciones; la duplicación se pudre y la cubre `operations/drift-guards`). Canónicos fase 04 con la misma regla: `docs/rate-limit-matrix.md` (49 filas, el spec `04-04` solo enlaza) y `docs/asvs-l2-checklist.md` (10 capítulos, el `Contratos` de `04-05` solo enlaza). Checklist Entidad/DTOs/…: pedir fila en tabla `01-04` para `Authentication:UseJwtBearer`/`PasswordHasher:`/`RateLimiting:*` y delta-sobre-slice-previo (precedente `04-01`: no recrea `03-08`, solo el swap JWT).
