@@ -148,7 +148,18 @@ namespace WebAPIDevSecOpsScallingSDD
             services.AddScoped<FluentValidation.IValidator<Dtos.VenCatEstadoCreateDto>, Validators.VenCatEstadoCreateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.VenCatEstadoUpdateDto>, Validators.VenCatEstadoUpdateValidator>();
             services.AddScoped<FluentValidation.IValidator<Dtos.VenCatEstadoDeleteDto>, Validators.VenCatEstadoDeleteValidator>();
-            services.AddScoped<Services.ISegUsuarioPasswordHasher, Services.FakeSegUsuarioPasswordHasher>();
+            // (04-02) Hasher real Argon2id (64MB/3 iter) + fallback BCrypt solo migracion.
+            // PasswordHasher: solo parametros de coste, sin secretos.
+            services.Configure<Services.PasswordHasherOptions>(configuration.GetSection("PasswordHasher"));
+            services.AddScoped<Services.ISegUsuarioPasswordHasher>(serviceProvider =>
+            {
+                var runtimeConfig = serviceProvider.GetRequiredService<IConfiguration>();
+                var options = runtimeConfig.GetSection("PasswordHasher").Get<Services.PasswordHasherOptions>() ?? new Services.PasswordHasherOptions();
+                return new Services.Argon2IdSegUsuarioPasswordHasher(options);
+            });
+            // (04-02) Bloqueo persistente 15 min fuera de la caché efímera.
+            services.AddSingleton<TimeProvider>(TimeProvider.System);
+            services.AddScoped<Services.ILoginLockoutStore, Services.EfLoginLockoutStore>();
             services.AddScoped<Services.ILoginService, Services.LoginService>();
             services.AddScoped<FluentValidation.IValidator<Dtos.LoginRequest>, Validators.LoginRequestValidator>();
             services.AddScoped<Services.ITotpService, Services.OtpNetTotpService>();

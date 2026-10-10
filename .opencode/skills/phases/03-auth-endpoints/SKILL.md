@@ -13,7 +13,7 @@ Login, 2FA, refresh, logout.
 
 ## Pasos
 
-LoginService anti-enumeración (mismo body 401 + verify dummy `_dummyHash`) + lockout (`attempts:{nombre}` TTL 120s = máx `CacheService`, `lockout:{nombre}` al 5º fallo; 1–5→401, siguiente→423; `NOTE 04-02` 15min); token opaco 32B `RandomNumberGenerator` (`NOTE 04-01`, no JWT); 2FA temp hex 64 (no Base64: `token` prohibido en llaves) en `cache:login2fa:{hex}` TTL 120s + `FakeTotpService 123456` (`NOTE 03-09`); refresh rotación vía `strReplacedByTokenHash` + blacklist `blacklist:{jti}` TTL 120s; logout fallback `jti ?? hash(refresh)`.
+LoginService anti-enumeración (mismo body 401 + verify dummy `_dummyHash`) + lockout persistente `04-02` (tabla `SegBloqueo` 5→15min vía `ILoginLockoutStore`/`TimeProvider`; 1–5→401, siguiente→423; `Login2Fa/TwoFactor` conservan `attempts:/lockout:` en caché); hasher real `Argon2IdSegUsuarioPasswordHasher` (Fake intacto solo tests); token opaco 32B `RandomNumberGenerator` (`NOTE 04-01`, no JWT); 2FA temp hex 64 (no Base64: `token` prohibido en llaves) en `cache:login2fa:{hex}` TTL 120s + `FakeTotpService 123456` (`NOTE 03-09`); refresh rotación vía `strReplacedByTokenHash` + blacklist `blacklist:{jti}` TTL 120s; logout fallback `jti ?? hash(refresh)`.
 Doubles de test: `RecordingHasher` (fija semilla dummy), `RecordingTotp`.
 TOTP real `03-09` (ver `phases/04-totp-provisioning`): `OtpNetTotpService` (ventana ±1, `GenerateRandomKey(20)`) + `TwoFactorSecretProtector` (DataProtection `"TwoFactor"`) + `ITotpProvisioner` nueva con Fake intacto; llave `2fa:{userId}` + `attempts:/lockout:`; `SetupAsync→null` sin try/catch (canónico `03-16`); `RemoveAsync lockout` en success eliminado; waiver critic `Secret` enrollment 1 vez; Stryker `93.41%` (`stryker-0309.json`, `-f`).
 

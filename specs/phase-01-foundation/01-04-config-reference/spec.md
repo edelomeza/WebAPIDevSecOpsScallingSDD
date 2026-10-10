@@ -22,6 +22,8 @@ Referencia exhaustiva de configuración de la API. **Depende de**: `01-01`.
 | `Kestrel:Limits:KeepAliveTimeout` | `00:02:00` | [Core / Implementado] | keep-alive defensivo |
 | `Cors:AllowedOrigins` | `["https://yourproductiondomain.com"]` | [Core / Implementado] | CORS restringido |
 | `AssemblyIntegrity:ExpectedSha256` | `""` | [Core / Implementado] | SHA-256 esperado del assembly en runtime |
+| `PasswordHasher:MemoryKBytes` | `65536` | [Fase 04 / Implementado] | Argon2id memoria (64 MB), sin secretos |
+| `PasswordHasher:Iterations` | `3` | [Fase 04 / Implementado] | Argon2id pasadas, sin secretos |
 | `Redis:ConnectionString` | `localhost:6379,abortConnect=false` | [Fase 05 / Implementado] | multiplexer Redis afinado |
 | `SkipMigration` | `false` | [Fase 02 / Implementado] | migraciones solo en tests (sin Migrate en arranque) |
 | `EnableProviderStates` | `false` | [Fase 02 / Implementado] | gate de POST /provider-states (no-prod) |
@@ -55,4 +57,4 @@ Transport/PERF_* en el JSON de ejemplo hasta que el código las consuma. `Redis:
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 04-Oct-2026
-- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`. (+`Authentication:UseJwtBearer` 09-Oct-2026, ver `04-01`; sin cambio de estado.)
+- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`. (+`Authentication:UseJwtBearer` 09-Oct-2026, ver `04-01`; +`PasswordHasher:*` 09-Oct-2026, ver `04-02`; sin cambio de estado.)

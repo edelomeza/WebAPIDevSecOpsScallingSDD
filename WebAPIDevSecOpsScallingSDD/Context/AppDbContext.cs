@@ -19,6 +19,7 @@ namespace WebAPIDevSecOpsScallingSDD.Context
         public DbSet<EmpEmpleado> EmpEmpleados => Set<EmpEmpleado>();
         public DbSet<ProProducto> ProProductos => Set<ProProducto>();
         public DbSet<SegRefreshToken> SegRefreshTokens => Set<SegRefreshToken>();
+        public DbSet<SegBloqueo> SegBloqueos => Set<SegBloqueo>();
         public DbSet<SegUsuario> SegUsuarios => Set<SegUsuario>();
         public DbSet<VenCatEstado> VenCatEstados => Set<VenCatEstado>();
         public DbSet<VenPedido> VenPedidos => Set<VenPedido>();
@@ -48,6 +49,7 @@ namespace WebAPIDevSecOpsScallingSDD.Context
             }
 
             modelBuilder.Entity<VenPedidoPago>().HasIndex(e => e.strIdTransaccion).IsUnique();
+            modelBuilder.Entity<SegBloqueo>().HasIndex(e => e.strNombre).IsUnique();
             modelBuilder.Entity<VenPedidoFactura>().HasIndex(e => e.strFolioFactura).IsUnique();
         }
 
