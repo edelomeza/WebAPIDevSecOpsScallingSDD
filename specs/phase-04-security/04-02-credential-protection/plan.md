@@ -2,7 +2,7 @@
 
 1. Mapeo
 
-- Crear: `Services/PasswordHasherOptions.cs`, `Services/LoginLockoutStore.cs`, `Models/SegBloqueo.cs`, `Migrations/*_SegBloqueo0402.cs`, `UnitTest/Login/PasswordHasherTests.cs`, `SecurityTest/Login/AntiEnumerationTests.cs`, `SecurityTest/Cache/NoLeakTests.cs`.
+- Crear: `Services/PasswordHasherOptions.cs`, `Services/LoginLockoutStore.cs`, `Models/SegBloqueo.cs`, `Migrations/*_SegBloqueo0402.cs`, `UnitTest/Login/PasswordHasherTests.cs`, `UnitTest/Login/LoginLockoutStoreTests.cs`, `SecurityTest/Login/AntiEnumerationTests.cs`, `SecurityTest/Cache/NoLeakTests.cs`.
 - Modificar: `Services/SegUsuarioPasswordHasher.cs` (interfaz `NeedsRehash` + `Argon2IdSegUsuarioPasswordHasher`, S101), `Services/LoginService.cs` (lockout por store, ctor 4 args), `Context/AppDbContext.cs` (`SegBloqueos` + índice único), `Program.cs` (DI hasher factory + `TimeProvider` + store), `nuget.config` (`Konscious.*`, `BCrypt.Net*`), `appsettings.Example.json` (`PasswordHasher:`), `UnitTest/Login/LoginServiceTests.cs` + `Login2fa/*Tests.cs` (ctor 4 args).
 
 2. Guardarraíles
@@ -15,7 +15,7 @@
 
 3. Pruebas
 
-- `UnitTest/Login/PasswordHasherTests.cs` (5), `UnitTest/Login/LoginServiceTests.cs` (11).
+- `UnitTest/Login/PasswordHasherTests.cs` (10: OK/KO, BCrypt legacy, fresco/desconocido, nulos, Fake-nulos, coste-cero, opciones custom, `p=` fijado, batería 14 malformados), `UnitTest/Login/LoginServiceTests.cs` (14), `UnitTest/Login/LoginLockoutStoreTests.cs` (6: reintento fresco/existente/expirado/doble-fallo, reset con conflicto, reset limpio).
 - `SecurityTest/Login/AntiEnumerationTests.cs` (3), `SecurityTest/Cache/NoLeakTests.cs` (4).
 - `IntegrationTest --filter Login` (8), `ContractTest` (4).
 

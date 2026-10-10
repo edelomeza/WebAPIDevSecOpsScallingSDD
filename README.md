@@ -228,6 +228,9 @@ Rules learned the hard way:
 - **Lockout after 5 failures** (persistent `SegBloqueo` row per name,
   15 min, since `04-02`; 2FA/2FA-verify paths still use `attempts:/lockout:`
   cache keys); 1–5 → 401/401, next → 423.
+- **Passwords hashed with Argon2id** (64 MB/3 iterations, own PHC format,
+  since `04-02`): BCrypt `$2a$/$2b$` only verified for migration
+  (`NeedsRehash`), corrupt hashes fail closed to generic 401, never 500.
 - Naming uses `2Fa` (not `2fa`) to satisfy Sonar S101.
 - **Opaque refresh/logout** (`NOTE 04-01` → real HS256 JWT): refresh tokens
   are SHA-256 hex persisted with rotation link (`strReplacedByTokenHash`)

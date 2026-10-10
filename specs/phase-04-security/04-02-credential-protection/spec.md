@@ -18,7 +18,7 @@ Hashing, anti-enumeración y lockout de credenciales. **Depende de**: `01-02`, `
 - Interno: `ISegUsuarioPasswordHasher.{Hash,Verify,NeedsRehash}`; `ILoginLockoutStore.{IsLocked,RecordFailure,ResetAsync}`; `SegBloqueo` + `PasswordHasher:` (sin secretos). Sin endpoints nuevos.
 
 ## Tests
-- `UnitTest/Login/PasswordHasherTests.cs` (5), `UnitTest/Login/LoginServiceTests.cs` (11, `TimeProvider` fake), `SecurityTest/Login/AntiEnumerationTests.cs` (3), `SecurityTest/Cache/NoLeakTests.cs` (4 casos).
+- `UnitTest/Login/PasswordHasherTests.cs` (10), `UnitTest/Login/LoginServiceTests.cs` (14, `TimeProvider` fake), `UnitTest/Login/LoginLockoutStoreTests.cs` (6, `FlakyDbContext`), `SecurityTest/Login/AntiEnumerationTests.cs` (3), `SecurityTest/Cache/NoLeakTests.cs` (4 casos).
 
 ## Criterios
 - `dotnet build -c Release --no-restore` → 0 errores; `UnitTest` 316/316; `SecurityTest` 74/74; `IntegrationTest` 92/99 + 7 Docker-only excluidos (sin daemon local, igual que `04-01`); `ContractTest` 4/4 (09-Oct-2026).
