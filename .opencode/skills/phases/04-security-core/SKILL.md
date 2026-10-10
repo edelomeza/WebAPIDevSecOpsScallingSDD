@@ -15,6 +15,7 @@ Fase 4.
 
 PasswordHasherService Argon2id+BCrypt; JWT HS256≥32B; policies; headers+CSP nonce; ForbiddenAccessException→403.
 Realidad vigente `04-02`: hasher `Argon2IdSegUsuarioPasswordHasher` (64MB/3iter, PHC propio, BCrypt solo `Verify`, `NeedsRehash` sin escritura) + lockout persistente `SegBloqueo` 5→15min vía `ILoginLockoutStore`/`TimeProvider` (fuera de la caché; `Login2Fa/TwoFactor`/blacklist siguen en `attempts:/lockout:/blacklist:` 120s); temp 2FA hex 64 `ToHexString` (no Base64: evita `password/secret/token` de `CacheService`) en `cache:login2fa:{hex}` TTL 120s + gate `IsHexToken`; JWT real en `04-jwt-refresh`; TOTP real en `phases/04-totp-provisioning` (OtpNet ±1, DataProtection, `2fa:{userId}`, `SetupAsync→null`, waiver `Secret`).
+Realidad `04-03`: `SecurityHeadersMiddleware` único lo más externo (antes de `DeveloperExceptionPage`; sin `CspNonceMiddleware` separada ni `OnStarting` — `DefaultHttpContext` no lo dispara) + HSTS 365d solo `MaxAge` vía `AddHsts` (gate no-Dev, sin subdominios/preload); HSTS en wire no testeable en TestServer (siempre http) → assert `HstsOptions` en factory `Production`.
 
 ## Checklist
 
