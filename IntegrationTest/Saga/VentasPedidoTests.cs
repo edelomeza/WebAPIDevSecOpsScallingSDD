@@ -37,7 +37,10 @@ namespace IntegrationTest.Saga
             var fetched = await client.GetAsync(new Uri($"/api/v1/ventas/pedido/{pedidoId}", UriKind.Relative));
             Assert.Equal(HttpStatusCode.OK, fetched.StatusCode);
 
-            Assert.Equal(5, await GetExistenciaAsync(client, fks.ProductoId));
+            // El bus valida y reserva en segundo plano (06-01): la respuesta POST es "Creado",
+            // el estado avanza a StockValidado y la existencia queda reservada (5 - 2).
+            Assert.Equal("StockValidado", await WaitForEstadoAsync(client, pedidoId, "StockValidado"));
+            Assert.Equal(3, await GetExistenciaAsync(client, fks.ProductoId));
 
             await CleanupFksAsync(client, fks);
         }
@@ -152,6 +155,26 @@ namespace IntegrationTest.Saga
             Assert.Equal(HttpStatusCode.OK, fetched.StatusCode);
             using var doc = JsonDocument.Parse(await fetched.Content.ReadAsStringAsync().ConfigureAwait(false));
             return doc.RootElement.GetProperty("intNumeroExistencia").GetInt32();
+        }
+
+        private static async Task<string?> WaitForEstadoAsync(HttpClient client, Guid pedidoId, string esperado)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (DateTime.UtcNow < deadline)
+            {
+                var fetched = await client.GetAsync(new Uri($"/api/v1/ventas/pedido/{pedidoId}", UriKind.Relative)).ConfigureAwait(false);
+                Assert.Equal(HttpStatusCode.OK, fetched.StatusCode);
+                using var doc = JsonDocument.Parse(await fetched.Content.ReadAsStringAsync().ConfigureAwait(false));
+                var estado = doc.RootElement.GetProperty("strEstadoSaga").GetString();
+                if (string.Equals(estado, esperado, StringComparison.Ordinal))
+                {
+                    return estado;
+                }
+
+                await Task.Delay(200).ConfigureAwait(false);
+            }
+
+            return null;
         }
 
         private static async Task<HttpResponseMessage> PostPedidoAsync(HttpClient client, int clienteId, int productoId, int cantidad)

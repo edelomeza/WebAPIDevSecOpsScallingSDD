@@ -11,7 +11,24 @@ namespace WebAPIDevSecOpsScallingSDD.Services
         Task PublishAsync(PedidoCreadoEvent evt, CancellationToken cancellationToken = default);
     }
 
-    // NOTE (06-01): fake InMemory del bus; 06-01 lo reemplaza por MassTransit (InMemory local / SQS prod).
+    public sealed class MassTransitPedidoEventPublisher : IPedidoEventPublisher
+    {
+        private readonly IEventBus _bus;
+
+        public MassTransitPedidoEventPublisher(IEventBus bus)
+        {
+            ArgumentNullException.ThrowIfNull(bus);
+            _bus = bus;
+        }
+
+        public Task PublishAsync(PedidoCreadoEvent evt, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(evt);
+            return _bus.PublishAsync(evt, cancellationToken);
+        }
+    }
+
+    // Fake intacto solo para UnitTest (los tests fijan el contrato: publica 1 vez / no publica en fallo).
     public sealed class FakePedidoEventPublisher : IPedidoEventPublisher
     {
         private readonly List<PedidoCreadoEvent> _published = new();

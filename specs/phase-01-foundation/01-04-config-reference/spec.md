@@ -33,7 +33,9 @@ Referencia exhaustiva de configuración de la API. **Depende de**: `01-01`.
 | `Redis:ConnectionString` | `localhost:6379,abortConnect=false` | [Fase 05 / Implementado] | multiplexer Redis afinado |
 | `SkipMigration` | `false` | [Fase 02 / Implementado] | migraciones solo en tests (sin Migrate en arranque) |
 | `EnableProviderStates` | `false` | [Fase 02 / Implementado] | gate de POST /provider-states (no-prod) |
-| `Transport` | `InMemory` | [Fase 06 / Pendiente] | `InMemory` local / `SQS` prod |
+| `Transport` | `InMemory` | [Fase 06 / Implementado] | `InMemory` local/test, `SQS` prod (MassTransit 8.5.11) |
+| `Sqs:Region` / `Sqs:Scope` | `""` | [Fase 06 / Implementado] | región AWS requerida si `Transport=SQS` (fail-fast); prefijo de colas; credenciales por IAM, nunca en JSON |
+| `Sqs:MaxReceiveCount` | `3` | [Fase 06 / Implementado] | redrive DLQ aprovisionado en fase 09 |
 | `StackName` | — | [Fase 09 / Pendiente] | stack CloudFormation |
 | `PORT` | `8080` | [Fase 09 / Pendiente] | puerto Kestrel por env |
 | `DB_USER` / `DB_PASSWORD` | — | [Fase 02 / Pendiente] | override de conexión |
@@ -63,4 +65,4 @@ Transport/PERF_* en el JSON de ejemplo hasta que el código las consuma. `Redis:
 - **Estado:** ✅ Aprobado
 - **Revisores:** @arquitecto-principal (1 Revisor)
 - **Fecha:** 04-Oct-2026
-- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`. (+`Authentication:UseJwtBearer` 09-Oct-2026, ver `04-01`; +`PasswordHasher:*` 09-Oct-2026, ver `04-02`; +`RateLimiting:*` y `PERF_RATELIMIT_MULTIPLIER` 10-Oct-2026, ver `04-04`; sin cambio de estado.)
+- **Detalle:** Migrada a plantilla `_template.md`; tabla con columna Estado/Fase; novedad `appsettings.Production.json`. (+`Authentication:UseJwtBearer` 09-Oct-2026, ver `04-01`; +`PasswordHasher:*` 09-Oct-2026, ver `04-02`; +`RateLimiting:*` y `PERF_RATELIMIT_MULTIPLIER` 10-Oct-2026, ver `04-04`; +`Transport` y `Sqs:*` 10-Oct-2026, ver `06-01`; sin cambio de estado.)

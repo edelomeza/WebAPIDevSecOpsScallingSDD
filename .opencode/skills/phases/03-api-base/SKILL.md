@@ -20,9 +20,9 @@ Al definir la capa API antes de implementar endpoints.
 1. Configurar `AddApiVersioning` con `DefaultApiVersion=1.0` y `UrlSegmentApiVersionReader`.
 2. `PropertyNamingPolicy=null` (sin camelCase del serializador; la convención de NOMBRES es la legacy, no PascalCase puro — ver punto 5).
 3. Crear `ExceptionHandlingMiddleware` con mapeo 403/404/409/400/408/500.
-4. Catálogo en fuente única `docs/endpoints.md` (el `spec.md` solo enlaza, no duplica; ver `operations/drift-guards`): método/ruta/auth/rate-limit(`NOTE 04-04`)/DTOs/códigos.
+4. Catálogo en fuente única `docs/endpoints.md` (el `spec.md` solo enlaza, no duplica; ver `operations/drift-guards`): método/ruta/auth/rate-limit vigente (`04-04`: policy de `docs/rate-limit-matrix.md`, ya no `NOTE`)/DTOs/códigos.
 5. Contratos JSON en `ContractTest/Fixtures/*.json` por captura real (ver `testing/testing-pact`): convención de nombres MEDIDA en `IsConventional` — prefijos legacy minúsculos (`str/int/dec/dte/bln` + mayúscula/dígito) + `id`/sufijo PascalCase + resto PascalCase (`RowVersion`). "PascalCase puro" es FALSO en este repo (lo tumbó el test de `03-18`: `id`, `strNombre`, `bln2FAHabilitado`, `idCliCliente`).
-6. Canon `03-16` (detalle en `phases/03-errors-middleware`): `ErrorResponse {Error/Status/TraceId + Detail solo no-prod}`, `NotFound/ForbiddenAccessException`, middleware primero + fuera `UseExceptionHandler` no-Dev, purga try/catch en 8 controllers + `21 NotFound()→throw` + `EnsureOwner→403` (outlier `EmpEmpleado` FK `400→422`), sondas `probe/{timeout,error,forbidden}` gateadas `EnableProviderStates`+no-prod, `10` factories a `Staging`, Stryker `100%` (`stryker-0316.json`).
+6. Canon `03-16` (detalle en `phases/03-errors-middleware`): `ErrorResponse {Error/Status/TraceId + Detail solo no-prod}`, `NotFound/ForbiddenAccessException`, middleware primero es `SecurityHeadersMiddleware` outermost → ExceptionHandling + fuera `UseExceptionHandler` no-Dev, purga try/catch en 8 controllers + `21 NotFound()→throw` + `EnsureOwner→403` (outlier `EmpEmpleado` FK `400→422`), sondas `probe/{timeout,error,forbidden}` gateadas `EnableProviderStates`+no-prod, `10` factories a `Staging`, Stryker `100%` (`stryker-0316.json`). `OnRejected` 429 reutiliza el mismo `ErrorResponse` sin Detail.
 
 ## Checklist
 

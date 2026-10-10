@@ -21,6 +21,7 @@ Acceso a logs/reportes reales.
 2. Inspeccionar formato real.
 3. Fijar umbral con margen.
 4. Documentar evidencia.
+5. Precedentes fase 04 (medir antes de fijar): `04-01` literal `"role"` vs `ClaimTypes.Role` + CA1865/CA1845 + CS8601 indexer; `04-02` S101 `Argon2Id` + S1135 `todo` minúsculas + `AsSpan(2)` que compensa `"m="→""` + `catch when` fail-closed + `test-case-filter FullyQualifiedName~UnitTest.` (5 vs 75min) + timing anti-enumeración <10s; `04-03` `UseHsts(Action)` inexistente + S3358 ternaria + namespace `HttpsPolicy` + HSTS wire no verificable → assert opciones; `04-04` `EnableRateLimiting` action>clase verificado por 429 + `RetryAfter` ausente → best-effort + eager vs lazy config; `04-05` parciales honestos V2/V3/V7/V9 como ejemplo de deuda medida.
 
 ## Checklist
 

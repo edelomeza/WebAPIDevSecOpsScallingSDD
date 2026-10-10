@@ -606,3 +606,51 @@
 - Parciales honestos: V2 (`NeedsRehash` sin escritura, temp-2FA 120s), V3 (blacklist TTL 120s), V7 (`audit hash chain` fase 08), V9 (HSTS wire no verificable en `WebApplicationFactory`).
 - Verificación: build 0/0 + `critic PASS` + `endpoints OK (56)`; suites heredadas de 04-04 (Unit 330/330, Security 81/81, Integration 99/99, Contract 4/4, Database 2/2) sin regresión posible (sin código nuevo).
 - Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026).
+
+## Cierre PR #25 phase04.5 mergeado a main (2026-10-10)
+- Merge `7be3cee` (PR #25 `phase04.5` → `main`): 04-05 OWASP ASVS L2 (`1c84329`: `docs/asvs-l2-checklist.md` 10 capítulos + firma spec/task).
+- `main` local sincronizado en `7be3cee` (fast-forward, working tree limpio) + build 0/0 + UnitTest 330/330 en `main`.
+- Spec `04-05` publicada en `main`; fase 04 cerrada por completo en `main` (04-01…04-05 ✅).
+
+## Skills sincronizadas con fase 04 (2026-10-10, rama `phase06.preview`, solo `.md`)
+- 26 SKILL.md + 3 agentes, 0 nuevas (todo encajaba en existentes): P0 `auth-matrix` (rate 04-04 vigente + literal `role`/flag/`OnTokenValidated` + ASVS canónico), `03-auth-endpoints` (delta JWT + checklist duplicada eliminada), `03-errors-middleware` (SecurityHeaders outermost), `02-domain-data`/`02-migrations-seed` (`SegBloqueo`, `SegBloqueo0402` sin `_`, seed fail-closed), `01-foundation` (orden post-04 + claves `UseJwtBearer`/`PasswordHasher:`/`RateLimiting`), `drift-guards` (2º/3er canónico `rate-limit-matrix` 49 + `asvs-l2-checklist` 10 caps); P1 `04-jwt-refresh` (delta 04-01 + CA1865/CA1845/CS8601), `04-security-core` (taller 04-02/04-03 + Stryker 90.85%/100%), `testing-mutation` (`test-case-filter` + `AsSpan(2)`/`catch when`), `testing-webappfactory` (flag JWT + `IOptionsMonitor` lazy + HSTS assert), `testing-strategy` (conteos 330/99/81/4/2), `analyzer-quickref` (CA1865/CA1845/CS8601/S101/CA1707/S1135-minúsculas/S3358/CA2000-04-04) + tope en `07-static-analysis`, `09-ci-matrix`/`09-cicd-ops` (baseline + `PERF_*` + canónicos), `05-cache-redis` (login→`SegBloqueo`, puente lazy); P2 `traceability` (matrices vivas), `spec-first-writing` (no-duplicar extendido), `vertical-slice`/`03-api-vertical-slice`/`03-api-base`/`03-saga-endpoints`/`empirical-verification`/`deferred-scope-fakes`/`critic-guardrails`.
+- Agentes `last-synced → 2026-10-10`: `slice-scaffolder` (`EnableRateLimiting` + orden headers), `security-reviewer` (checks 04 FAIL vigente), `traceability-clerk` (paths `rate-limit-matrix`/`asvs-l2-checklist`).
+- Verificación: solo `.md` (sin código); `critic PASS (30 files)` + `endpoints OK (56)`; sin commit por decisión del usuario (rama actual).
+
+## Sub-agentes mejorados para fase 06 (2026-10-10, rama `phase06.preview`, solo `.md`)
+- Veredicto: sí requerían actualización — los 3 estaban anclados a fase 03/04 e incapaces de generar/verificar el bus real (`06-01…06-04` en Borrador, `docs/saga-state-machine.md` inexistente, 1/7 eventos con mismatch `Guid vs int`, `Consumers/` vacío, 8 `NOTE 06-*` pendientes desde `03-12…03-15`).
+- `slice-scaffolder`: +3ª entrada `06-0X`, +enlaces `06-events-saga`/`06-saga-state-machine`, +puntos 9-12 (`Events` 7 POCO inmutables `06-03`, `Consumers IConsumer<T>` StockValidator/Pago/Factura/Compensation idempotente+retry+DLQ 3, snippet MassTransit `Transport=InMemory/SQS` + paquetes, `docs/saga-state-machine.md` sin huérfanos con canónico `Pendiente vs Creado/Registrado`), +variante saga/consumer (`grep NOTE 06-*`, `stryker-06XX`, `IntegrationTest/Saga/` + `ChaosTest/`), swap ampliado a folio `F-{año}-{seq}`+`FacturaConsumer`, Done saga.
+- `security-reviewer`: duplicado `auth-matrix` corregido a `docs/rate-limit-matrix.md` + fuentes 06; +checks 10-14 WARN→FAIL (secretos/PII en `Events/` + SQS hardcodeado/transporte pinned + idempotencia/retry/DLQ + compensación 2 niveles + bus sin auth/logs/catch-traga/schemas sin versión/estados huérfanos); aclara que `critic-guardrails.ps1` cubre solo 1-4 (5-14 manuales).
+- `traceability-clerk`: +fuentes `saga-state-machine.md` + 4 specs 06; +reportes 4-6 (estados/diagrama, schemas vs `Events/` + transiciones vs consumers, `grep NOTE 06-*` + anti-cobertura-ficticia extendida a 06).
+- `README.md` de agentes: roles con fase 06 + skills `06-*` enlazadas.
+- Verificación: solo `.md`; `critic PASS (31 files)` + `endpoints OK (56)`; sin commit (rama actual).
+
+## AGENTS.md sincronizado con fase 04 + sub-agentes 06 (2026-10-10, rama `phase06.preview`, solo `.md`)
+- §5: banner Fase 04 ✅ + lockout login migrado a `SegBloqueo` (solo 2FA/blacklist en Redis).
+- §6: eliminado banner falso `[FASE 04 - PENDIENTE]`; reescrito como implementado (JWT flag + `OnTokenValidated`, Argon2id + `SegBloqueo`, `SecurityHeadersMiddleware` outermost + `AddHsts`, rate-limit 5 policies + 429, matrices vivas).
+- §11: variante saga/consumer + checks 06 + clerk 06 + critic cubre 1-4; §3 +3 límites (`IOptionsMonitor` lazy, `S1135` minúsculas/CA1707, canónico `06-04`); structure `docs/` con 3 canónicos.
+- Verificación: `critic PASS (32 files)` + `endpoints OK (56)`; sin commit (rama actual).
+
+## Constitution global sincronizada (2026-10-10, rama `phase06.preview`, solo `.md`)
+- `.specify/memory/constitution.md` (artefacto spec-kit, 8 falsedades): §2.1 lockout login→`SegBloqueo` (solo 2FA/blacklist en Redis); §4 JSON legacy medida (no PascalCase puro) + orden medido (`SecurityHeadersMiddleware` outermost, sin `CspNonce` separada, `UseRateLimiter` antes de `Auth`) + TTL 0–120s; §6 `ExpectedSha256`; §7 gate Stryker ≥80% + filtro UnitTest; §8 orden CI con `critic→endpoints→contract→semgrep`; §10 `agent.md` muerto→`Memoria.md` + `00-04` canónico.
+- No tocados (requieren revisor): `00-01`/`00-04` ✅ firmados (promoción de evidencias `Por Validar` → 04-05 queda como follow-up con revisor).
+- Verificación: `critic PASS (33 files)` + `endpoints OK (56)`; sin commit (rama actual).
+
+## README.md reconciliado con fase 04 (2026-10-10, rama `phase06.preview`, solo `.md`)
+- Lede + status: fase 04 ✅ (JWT real, Argon2id, headers, rate-limit, ASVS) en vez de "pendiente"; stack +4 paquetes (`JwtBearer`, `Argon2`, `BCrypt`, `Otp.NET`) + configs `stryker-0402/0403`; config +4 claves (`UseJwtBearer`, `PasswordHasher:`, `RateLimiting:`, `PERF_*`); refresh/logout JWT + `OnTokenValidated`; middleware +`UseRateLimiter`; medido 10-Oct **330/99/81/2/4** + 3 canónicos + Stryker 04-02/04-03; +5 reglas (`test-case-filter`, literal `role`, `IOptionsMonitor` lazy, `UseHsts`/`HSTS-WAF`, action>clase); decisiones JWT/rate/headers reescritas como vigentes; componentes + sub-agentes fase 06; roadmap sin `PR #18` ni fase 04 pendiente.
+- Verificación: `critic PASS (34 files)` + `endpoints OK (56)`; sin commit (rama actual).
+
+## T1 — 06-01 Transporte y eventos ejecutado (2026-10-10, rama `phase06.preview`)
+- Paquetes: `MassTransit` + `MassTransit.AmazonSQS` **8.5.11** (Apache-2.0 + net10.0; 9.2.3 descartado por licencia comercial Massient — regla 00-01 excepción); `nuget.config` +`MassTransit*`/`AWSSDK.*`; restore sin NU1100.
+- Bus en `Program.cs`: `AddConsumers` + if/else `UsingAmazonSqs` (colas `saga-*.fifo`, región fail-fast, retry 5×) / `UsingInMemory` (retry 5× 500ms→10s, `ConfigureEndpoints`); `Transport`/`Sqs:*` en `Example.json` + fila `01-04` a Implementado; credenciales SQS solo IAM.
+- Contratos: 7 `record` inmutables `SchemaVersion = 1` (desviación `Guid` vs `int` 06-03); `SagaStates` con 8 estados; `IEventBus` + publishers MassTransit (fakes intactos para UnitTest).
+- Consumers: StockValidator reserva al validar; Pago valida cobro; Factura folio determinista `F-{año}-{pedido:N}`; Compensation anula + restaura solo con reserva; `VenEventoProcesado` UNIQUE + migración `EventosProcesados0601` (factory temporal borrada).
+- `VentasPedidoService` responde antes de publicar (POST determinista); `VentasPagoService` publica `PagoProcesadoEvent` (ctor +1, tests actualizados).
+- `docs/saga-state-machine.md` mínimo (diagrama + matriz transición→consumer + reglas); tríada 06-01 a Borrador con evidencia.
+- Tests: `UnitTest` 386/386 (+56: Events 4, Consumers 40, Transport 3, pago 5, AppSettings 4), `IntegrationTest` 101/101 (+2 Transport: feliz hasta Facturado, rechazo hasta Cancelado), Security 81/81, Contract 4/4, Database 2/2; `critic PASS` + `endpoints OK (56)`.
+- Lecciones: MassTransit una sola fábrica (segundo `SetBusFactory` lanza); marca de idempotencia CON la mutación (marcar-antes rompe el reintento: redelivery ve marca y salta); `folio` mandado no secreto (fix check 10 reviewer); cobro fuera de orden → `PagoRechazadoEvent`; competencia Pago/Factura exige retry amplio (5× 500ms→10s); llaves cache como `const` (B2b); `S125` caza comentarios con pinta de código; `CA1861` en migración → pragma; `CA1002` en fakes públicos compartidos; `CA1859` prefiere `List<>` en dobles; `IPublishEndpoint` tiene 8 overloads (stub completo); `ignore-methods: [Consume]` para adaptadores finos (cubiertos en Integration).
+- Estado spec: ✅ Aprobado (@usuario, 10-Oct-2026, firma sin cambios sobre la evidencia T1: Stryker **90.77%**, residuo clasificado; SQS vivo + caos → fase 09; compensación total → 06-02).
+- Follow-up: `02-03` schema sigue en 13 tablas (faltan `SegBloqueo` 04-02 y `VenEventoProcesado` 06-01;spec ✅, requiere revisor para conciliar).
+
+## Cierre commit 06-01 en `phase06.preview` (2026-10-10, local sin push)
+- Commit `98d4c5a`: T1 06-01 + firma (@usuario) + skills 04/06 + AGENTS/constitution/README sincronizados (84 ficheros, working tree limpio, sin push a GitHub por decisión del usuario).

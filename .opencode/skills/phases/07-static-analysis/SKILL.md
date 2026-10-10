@@ -20,7 +20,7 @@ Fase 9.
 1. Añadir reglas Semgrep en `.semgrep/semgrep.yaml`.
 2. Ajustar `Directory.Build.props` con SonarAnalyzer (`AnalysisMode=All`, `TreatWarningsAsErrors`).
 3. Limitar complejidad ciclomática ≤10 (`S1541`) y cognitiva ≤15 (`S3776`).
-4. Aplicar cheat-sheet de reglas que rompieron builds reales (`03-01`…`03-18`): ver tabla en `testing/analyzer-quickref` (incluye `S3041`, waiver `Secret` enrollment `03-09`, canon sin try/catch `03-16`, `NoWarn CA1515` + xUnit1030 en `ContractTest` `03-18`).
+4. Aplicar cheat-sheet de reglas que rompieron builds reales (`03-01`…`04-04`): ver tabla en `testing/analyzer-quickref` (incluye `S3041`, waiver `Secret` enrollment `03-09`, canon sin try/catch `03-16`, `NoWarn CA1515` + xUnit1030 en `ContractTest` `03-18`, `CA1865/CA1845` + `CS8601` en `04-01`, `S101`/`CA1707`/`S1135-minúsculas` en `04-02`, `S3358` + namespace `HttpsPolicy` en `04-03`, `CA2000` factory inline en `04-04`).
 5. Ejecutar `dotnet build` y CI.
 
 ## Checklist

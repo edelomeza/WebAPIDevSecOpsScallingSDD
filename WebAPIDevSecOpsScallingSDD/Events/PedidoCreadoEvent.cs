@@ -2,13 +2,16 @@ using System;
 
 namespace WebAPIDevSecOpsScallingSDD.Events
 {
-    // NOTE (06-03): schema temporal del evento inicial de la saga; 06-03 fija el contrato definitivo.
-    public sealed class PedidoCreadoEvent
+    // Contrato 06-03 v1 (desviación registrada en spec: PedidoId es Guid — el PK real de VenPedido —
+    // en vez de int; el pedido lleva N detalles, por eso viajan ClienteId+Total en vez de productoId/cantidad).
+    public sealed record PedidoCreadoEvent
     {
-        public Guid PedidoId { get; set; }
+        public const int SchemaVersion = 1;
 
-        public int ClienteId { get; set; }
+        public Guid PedidoId { get; init; }
 
-        public decimal Total { get; set; }
+        public int ClienteId { get; init; }
+
+        public decimal Total { get; init; }
     }
 }

@@ -27,7 +27,6 @@ namespace UnitTest.VentasPedido
             Assert.Throws<ArgumentNullException>(() => new VentasPedidoService(null!, cache, publisher));
             Assert.Throws<ArgumentNullException>(() => new VentasPedidoService(context, null!, publisher));
             Assert.Throws<ArgumentNullException>(() => new VentasPedidoService(context, cache, null!));
-            Assert.Throws<ArgumentNullException>(() => new StockValidatorConsumer(null!));
         }
 
         [Fact]
@@ -234,25 +233,6 @@ namespace UnitTest.VentasPedido
             Assert.NotNull(stale);
             Assert.Equal(created.id, stale!.id);
             Assert.Equal(20m, stale.decTotal);
-        }
-
-        [Fact]
-        public async Task StockValidatorDetectsAvailability()
-        {
-            await using var context = CreateContext();
-            SeedBase(context, existencia: 5, precio: 10m);
-            var service = new VentasPedidoService(context, new FakeCacheService(), new FakePedidoEventPublisher());
-            var consumer = new StockValidatorConsumer(context);
-
-            Assert.False(await consumer.HasStockAsync(Guid.NewGuid()));
-
-            var created = await service.CreateAsync(ValidDto());
-            Assert.True(await consumer.HasStockAsync(created.id));
-
-            var producto = await context.ProProductos.SingleAsync();
-            producto.intNumeroExistencia = 1;
-            await context.SaveChangesAsync();
-            Assert.False(await consumer.HasStockAsync(created.id));
         }
 
         [Fact]

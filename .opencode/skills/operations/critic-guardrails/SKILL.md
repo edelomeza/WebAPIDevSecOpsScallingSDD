@@ -28,7 +28,7 @@ En cada PR antes del push; al endurecer el script; al declarar un waiver.
 
 ## Criterios de done
 
-`scripts/critic-guardrails.ps1` → `PASS exit 0` sobre el diff real del PR.
+`scripts/critic-guardrails.ps1` → `PASS exit 0` sobre el diff real del PR (evidencia fase 04: `PASS (11 files)` en `04-01`, `PASS` en `04-02/04-03/04-04/04-05` + `endpoints OK (56)` en cada una).
 
 ## Límites/trampas
 

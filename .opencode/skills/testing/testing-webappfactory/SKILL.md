@@ -13,6 +13,7 @@ Integration/Security con `WebApplicationFactory<Program>`.
 `TestAuthHandler` ("Test"): rol vía header `X-Test-Role`, usuario vía `X-Test-UserId` (sin header = comportamiento intacto); fábrica Admin con `ConfigureTestServices` + pragma `CA2000`.
 Sin endpoint `POST` para una entidad: sembrar vía `factory.Services.CreateScope()` + `GetRequiredService<AppDbContext>()` (comparte el store InMemory del servidor; precedente `03-07` 2FA, aplicado `03-14`).
 Post-`03-16` (canon en `phases/03-errors-middleware`): `10` factories a `Staging` (en `Dev` la página de excepciones devolvería HTML); `Production` exige override `UseInMemoryDatabase=true`; sondas `GET /api/v1/probe/{timeout,error,forbidden}` gateadas `EnableProviderStates`+no-prod (`Errors 8/8`). `03-09`: stubs controlables en unit vs TOTP real solo en integración (`TwoFactor 6/6 + Login2Fa 4/4`). `03-15`: asserts `>=1` en dashboard por store compartido (no `TotalCount==1`).
+Post-`04`: flag `Authentication:UseJwtBearer` — la API real usa JwtBearer, Integration/Contract fuerzan esquema `Test` vía `ConfigureTestServices` (sin este override los 401/403 no son deterministas); config rate-limit vía `IOptionsMonitor` lazy (la lectura eager de `builder.Configuration` en el registro no ve overrides WAF y el 429 no disparaba); `[EnableRateLimiting]` de action prevalece sobre el de clase (verificado por los 429); colaterales 04-04 con límite elevado vía config (`IntegrationTest/Login.FiveFailuresThenLockedOut`, `SecurityTest/Login.RepeatedUnknownFailuresLockOut`, aserciones intactas); `04-03`: HSTS en wire no testeable con WAF (TestServer siempre http) → assert `HstsOptions` 365d en factory `Production` + `SecurityHeadersTests` 10 + `HeaderTests` 3 (403 sonda `Staging` con headers).
 
 ## Checklist
 
@@ -22,8 +23,8 @@ Todo test que cree datos los borra al final (`DELETE` con `RowVersion` de la cre
 
 ## Límites/trampas
 
-TokenBlacklist estático cruza tests. Docker Desktop detenido → `DockerUnavailableException`: arrancar daemon antes del rerun (recurrencia `03-02/03-11/03-12/03-13`). Pedidos/entidades sin endpoint DELETE acumulan filas: no asertar conteos exactos sobre ellas.
+TokenBlacklist estático cruza tests. Docker Desktop detenido → `DockerUnavailableException`: arrancar daemon antes del rerun (recurrencia `03-02/03-11/03-12/03-13`; baseline 04-01/04-02/04-03: 7 Docker-only excluidos → `99/99` tras arrancar daemon). Pedidos/entidades sin endpoint DELETE acumulan filas: no asertar conteos exactos sobre ellas. `new WebApplicationFactory<Program>().WithWebHostBuilder(...)` inline dispara CA2000 → pragma como en `CreateAdminFactory` (probado `04-04`).
 
 ## Referencias
 
-`IntegrationTest`, `SecurityTest`, `phases/03-errors-middleware`, `phases/04-totp-provisioning`.
+`IntegrationTest`, `SecurityTest`, `phases/03-errors-middleware`, `phases/04-totp-provisioning`, `core/auth-matrix`, `phases/04-security-core`.

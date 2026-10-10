@@ -57,6 +57,11 @@ namespace UnitTest.Common
             Assert.True(rateLimiting.TryGetProperty("AdminPermitLimit", out _));
             Assert.True(rateLimiting.TryGetProperty("AdminWindowSeconds", out _));
             Assert.True(rateLimiting.TryGetProperty("ConcurrentWritesPermitLimit", out _));
+            Assert.True(root.TryGetProperty("Transport", out var transport));
+            Assert.Equal("InMemory", transport.GetString());
+            Assert.True(root.TryGetProperty("Sqs", out var sqs));
+            Assert.True(sqs.TryGetProperty("Region", out _));
+            Assert.True(sqs.TryGetProperty("MaxReceiveCount", out _));
         }
 
         [Fact]
@@ -75,11 +80,10 @@ namespace UnitTest.Common
             using var doc = JsonDocument.Parse(raw);
 
             Assert.DoesNotContain("PERF_", raw, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("\"Transport\"", raw, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("StackName", raw, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("DB_USER", raw, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("DB_PASSWORD", raw, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("PORT", raw, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("\"PORT\"", raw, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Observability", raw, StringComparison.OrdinalIgnoreCase);
         }
     }

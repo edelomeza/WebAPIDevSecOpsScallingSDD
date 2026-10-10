@@ -27,7 +27,7 @@ CRUD completo o slice acotado con `NOTE`s (`03-13` sin bus/consumer; `03-14` sol
 
 ## Criterios de done
 
-Endpoint responde con códigos correctos; rate limit aplicado.
+Endpoint responde con códigos correctos; rate-limit explícito (`[EnableRateLimiting]` clase/action + fila en `docs/rate-limit-matrix.md`; action prevalece sobre clase) + auth explícita + `SecurityHeadersMiddleware` outermost respetado.
 
 ## Límites/trampas
 
@@ -35,4 +35,4 @@ No exponer entity directo; no cachear password.
 
 ## Referencias
 
-`03-01`…`03-05`, `03-00`, `03-16`, `03-07` (precedente scoped), `03-13`, `03-14`, `phases/03-errors-middleware`, `operations/critic-guardrails`.
+`03-01`…`03-05`, `03-00`, `03-16`, `03-07` (precedente scoped), `03-13`, `03-14`, `phases/03-errors-middleware`, `operations/critic-guardrails`, `core/auth-matrix`, `phases/04-security-core`.

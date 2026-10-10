@@ -312,6 +312,33 @@ namespace WebAPIDevSecOpsScallingSDD.Migrations
                     b.ToTable("VenCatEstado");
                 });
 
+            modelBuilder.Entity("WebAPIDevSecOpsScallingSDD.Models.VenEventoProcesado", b =>
+                {
+                    b.Property<int>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id"));
+
+                    b.Property<DateTime>("dteFechaProcesado")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("idPedido")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("strNombreEvento")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("strNombreEvento", "idPedido")
+                        .IsUnique();
+
+                    b.ToTable("VenEventoProcesado");
+                });
+
             modelBuilder.Entity("WebAPIDevSecOpsScallingSDD.Models.VenPedido", b =>
                 {
                     b.Property<Guid>("id")

@@ -28,6 +28,8 @@ Flujo pedido→stock→pago→factura; compensación en fallo.
 ## Límites/trampas
 
 Reconnection storm si timeouts no tuned; NBomber borra reportes.
+Desviación 06-01: bus abstracto `IEventBus` (+ `IPedidoEventPublisher`/
+`IPagoEventPublisher` conservados) en vez del `IEventPublisher` genérico.
 
 ## Referencias
 
