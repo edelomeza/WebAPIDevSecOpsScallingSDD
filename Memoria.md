@@ -654,3 +654,8 @@
 
 ## Cierre commit 06-01 en `phase06.preview` (2026-10-10, local sin push)
 - Commit `98d4c5a`: T1 06-01 + firma (@usuario) + skills 04/06 + AGENTS/constitution/README sincronizados (84 ficheros, working tree limpio, sin push a GitHub por decisión del usuario).
+
+## Cierre PR #26 phase06.preview mergeado a main (2026-10-10)
+- Merge `469378d` (PR #26 `phase06.preview` → `main`): T1 06-01 + firma + docs sincronizados.
+- `main` local en `469378d` + build 0/0 + UnitTest 386/386 en `main`; rama local `phase06.preview` eliminada (remota se conserva).
+- Spec `06-01` firmada y publicada en `main`; fase 06 en curso (06-02…06-04 pendientes).
